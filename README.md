@@ -14,7 +14,7 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 (lc/subscribe a-rabbit-channel
               "watership"
-              (simple-pass-through messages-from-rabbit)
+              (k/simple-pass-through messages-from-rabbit)
               subscribe-options)
 ```
 
