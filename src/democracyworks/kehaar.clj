@@ -38,3 +38,14 @@
            response (f message)]
        (lb/publish ch exchange reply-to (pr-str response)
                    {:correlation-id correlation-id})))))
+
+(defn ch->response-fn
+  "Returns a fn that takes a message, creates a core.async channel for
+  the response for that message, and puts [response-channel, message]
+  on the channel given. Returns the response-channel."
+  [channel]
+  (fn [message]
+    (let [response-channel (async/chan)]
+      (async/go
+        (async/>! channel [response-channel message]))
+      response-channel)))

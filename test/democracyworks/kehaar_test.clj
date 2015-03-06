@@ -38,3 +38,10 @@
         (handler rabbit-ch metadata payload)
         (let [returned-message (async/<!! c)]
           (is (= returned-message message)))))))
+
+(deftest ch->response-fn-test
+  (let [c (async/chan)
+        response-fn (ch->response-fn c)
+        message {:test true}
+        response-channel (response-fn message)]
+    (is (= [response-channel message] (async/<!! c)))))
