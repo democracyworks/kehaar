@@ -29,6 +29,17 @@
     (async/pipeline 1 channel (map #(nth % 2)) middleman)
     (pass-through middleman)))
 
+(defn forward
+  "Forward all messages on channel to the RabbitMQ queue."
+  [channel rabbit-channel exchange queue queue-options]
+  (lq/declare rabbit-channel
+              queue
+              queue-options)
+  (async/go-loop []
+    (let [message (async/<! channel)]
+      (lb/publish rabbit-channel exchange queue (pr-str message))
+      (recur))))
+
 (defn simple-responder
   "Returns a RabbitMQ message handler function which calls f for each
   incoming message and replies on the reply-to channel with the
