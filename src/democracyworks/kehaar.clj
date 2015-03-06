@@ -1,7 +1,9 @@
 (ns democracyworks.kehaar
   (:require [clojure.core.async :as async]
             [clojure.edn :as edn]
-            [langohr.basic :as lb]))
+            [langohr.basic :as lb]
+            [langohr.consumers :as lc]
+            [langohr.queue :as lq]))
 
 (defn read-payload [^bytes payload]
   (-> payload
@@ -49,3 +51,42 @@
       (async/go
         (async/>! channel [response-channel message]))
       response-channel)))
+
+(defn wire-up-service
+  "Wires up a core.async channel (managed through ch->response-fn) to
+  a RabbitMQ queue that provides responses."
+  ([rabbit-channel queue channel]
+   (wire-up-service rabbit-channel ""
+                    queue {:exclusive false :auto-delete true}
+                    1000 channel))
+  ([rabbit-channel exchange queue queue-options timeout channel]
+   (let [response-queue (str queue "." (java.util.UUID/randomUUID))
+         pending-calls (atom {})]
+     (lq/declare rabbit-channel
+                 queue
+                 queue-options)
+     (lq/declare rabbit-channel
+                 response-queue
+                 {:exclusive true :auto-delete true})
+     (lc/subscribe rabbit-channel
+                   response-queue
+                   (fn [ch {:keys [correlation-id]} ^bytes payload]
+                     (when-let [response-channel (@pending-calls correlation-id)]
+                       (async/go
+                         (async/>! response-channel (read-payload payload)))
+                       (swap! pending-calls dissoc correlation-id)))
+                   {:auto-ack true})
+     (async/go-loop []
+       (let [[response-channel message] (async/<! channel)
+             correlation-id (str (java.util.UUID/randomUUID))]
+         (swap! pending-calls assoc correlation-id response-channel)
+         (lb/publish rabbit-channel
+                     exchange
+                     queue
+                     (pr-str message)
+                     {:reply-to response-queue
+                      :correlation-id correlation-id})
+         (async/go
+           (async/<! (async/timeout timeout))
+           (swap! pending-calls dissoc correlation-id))
+         (recur))))))
