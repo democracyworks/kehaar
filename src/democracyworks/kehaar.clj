@@ -31,14 +31,16 @@
 
 (defn forward
   "Forward all messages on channel to the RabbitMQ queue."
-  [channel rabbit-channel exchange queue queue-options]
-  (lq/declare rabbit-channel
-              queue
-              queue-options)
-  (async/go-loop []
-    (let [message (async/<! channel)]
-      (lb/publish rabbit-channel exchange queue (pr-str message))
-      (recur))))
+  ([channel rabbit-channel queue]
+   (forward channel rabbit-channel "" queue {:exclusive false :auto-delete true}))
+  ([channel rabbit-channel exchange queue queue-options]
+   (lq/declare rabbit-channel
+               queue
+               queue-options)
+   (async/go-loop []
+     (let [message (async/<! channel)]
+       (lb/publish rabbit-channel exchange queue (pr-str message))
+       (recur)))))
 
 (defn simple-responder
   "Returns a RabbitMQ message handler function which calls f for each

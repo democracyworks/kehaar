@@ -24,6 +24,23 @@ edn-encoded payloads on the "watership" queue will be decoded and
 placed on the `messages-from-rabbit` channel for you to deal with as
 you like.
 
+### Passing messages from core.async to RabbitMQ
+
+```clojure
+(ns example
+  (:require [core.async :as async]
+            [democracyworks.kehaar :as kehaar]))
+
+(def outgoing-messages (async/chan))
+
+(kehaar/forward outgoing-messages
+                a-rabbit-channel
+                "updates")
+```
+
+All messages sent to the `outgoing-messages` channel will encoded as
+edn and placed on the "updates" queue.
+
 ### Applying a function to all messges on a RabbitMQ queue and responding on the reply-to queue with a correlation ID.
 
 ```clojure
