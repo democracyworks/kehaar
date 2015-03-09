@@ -46,7 +46,7 @@ edn and placed on the "updates" queue.
 ```clojure
 (ns example
   (:require [democracyworks.kehaar :as kehaar]
-            [langohr.consumers :as kehaar]))
+            [langohr.consumers :as lc]))
 
 (defn factorial [n]
   (reduce * 1 (range 1 (inc n))))
