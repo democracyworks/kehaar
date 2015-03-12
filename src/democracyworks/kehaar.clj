@@ -35,7 +35,7 @@
 
 (defn simple-responder
   "Returns a RabbitMQ message handler function which calls f for each
-  incoming message and replies on the reply-to channel with the
+  incoming message and replies on the reply-to queue with the
   response."
   ([f] (simple-responder f ""))
   ([f exchange]
