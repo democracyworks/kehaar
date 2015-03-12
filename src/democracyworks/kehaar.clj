@@ -92,5 +92,7 @@
                       :correlation-id correlation-id})
          (async/go
            (async/<! (async/timeout timeout))
+           (when-let [response-channel (@pending-calls correlation-id)]
+             (async/close! response-channel))
            (swap! pending-calls dissoc correlation-id))
          (recur))))))

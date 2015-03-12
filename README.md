@@ -80,8 +80,10 @@ Calling `(request-factorial 5)` will return a core.async channel for
 you to listen for the result from the "get-factorial"
 queue. `wire-up-service` listens on `factorial-ch` for messages,
 creates a response channel, sends a message to the "get-factorial"
-queue with a correlation ID, listens on a response queue, and finally
-puts the response (edn-decoded, naturally) onto the response channel.
+queue with a correlation ID, listens on a reply-to queue, and finally
+puts the response (edn-decoded, naturally) onto the response
+channel. The reply-to queue must receive a reply within 1000ms,
+otherwise it will close the response channel.
 
 ```clojure
 (let [response-ch (request-factorial 5)]
