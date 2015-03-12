@@ -18,23 +18,17 @@
       metadata {:year 2015}
       payload (edn-bytes message)]
 
-  (deftest pass-through-test
+  (deftest rabbit->async-test
     (let [c (async/chan)
-          handler (pass-through c)]
-      (testing "passes through rabbit channel and metadata"
-        (handler rabbit-ch metadata payload)
-        (let [[returned-ch returned-metadata _]  (async/<!! c)]
-          (is (= returned-ch rabbit-ch))
-          (is (= returned-metadata metadata))))
-      (testing "passes through the edn-decoded payload"
-        (handler rabbit-ch metadata payload)
-        (let [[_ _ returned-message] (async/<!! c)]
-          (is (= returned-message message))))))
-
-  (deftest simple-pass-through-test
-    (let [c (async/chan)
-          handler (simple-pass-through c)]
+          handler (rabbit->async c)]
       (testing "only passes through the edn-decoded payload"
         (handler rabbit-ch metadata payload)
         (let [returned-message (async/<!! c)]
           (is (= returned-message message)))))))
+
+(deftest ch->response-fn-test
+  (let [c (async/chan)
+        response-fn (ch->response-fn c)
+        message {:test true}
+        response-channel (response-fn message)]
+    (is (= [response-channel message] (async/<!! c)))))
