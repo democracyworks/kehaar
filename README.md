@@ -41,7 +41,7 @@ you like.
 All messages sent to the `outgoing-messages` channel will encoded as
 edn and placed on the "updates" queue.
 
-### Applying a function to all messges on a RabbitMQ queue and responding on the reply-to queue with a correlation ID.
+### Applying a function to all messages on a RabbitMQ queue and responding on the reply-to queue with a correlation ID.
 
 ```clojure
 (ns example
