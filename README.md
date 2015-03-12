@@ -16,7 +16,7 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 (lc/subscribe a-rabbit-channel
               "watership"
-              (k/simple-pass-through messages-from-rabbit)
+              (k/rabbit->async messages-from-rabbit)
               subscribe-options)
 ```
 
@@ -29,13 +29,13 @@ you like.
 ```clojure
 (ns example
   (:require [core.async :as async]
-            [democracyworks.kehaar :as kehaar]))
+            [democracyworks.kehaar :as k]))
 
 (def outgoing-messages (async/chan))
 
-(kehaar/forward outgoing-messages
-                a-rabbit-channel
-                "updates")
+(k/async->rabbit outgoing-messages
+                 a-rabbit-channel
+                 "updates")
 ```
 
 All messages sent to the `outgoing-messages` channel will encoded as

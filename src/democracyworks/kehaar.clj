@@ -10,29 +10,20 @@
       (String. "UTF-8")
       edn/read-string))
 
-(defn pass-through
+(defn rabbit->async
   "Returns a RabbitMQ message handler function which forwards all
-  messages to `channel`. Assumes that all payloads are UTF-8 edn
-  strings."
+  message payloads to `channel`. Assumes that all payloads are UTF-8
+  edn strings."
   [channel]
   (fn [ch meta ^bytes payload]
     (async/go
       (let [message (read-payload payload)]
-        (async/>! channel [ch meta message])))))
+        (async/>! channel message)))))
 
-(defn simple-pass-through
-  "Like `pass-through`, but only passes the message to
-  `channel`. Useful if you don't care about the `ch` or `meta`
-  arguments from RabbitMQ for a particular use-case."
-  [channel]
-  (let [middleman (async/chan)]
-    (async/pipeline 1 channel (map #(nth % 2)) middleman)
-    (pass-through middleman)))
-
-(defn forward
+(defn async->rabbit
   "Forward all messages on channel to the RabbitMQ queue."
   ([channel rabbit-channel queue]
-   (forward channel rabbit-channel "" queue {:exclusive false :auto-delete true}))
+   (async->rabbit channel rabbit-channel "" queue {:exclusive false :auto-delete true}))
   ([channel rabbit-channel exchange queue queue-options]
    (lq/declare rabbit-channel
                queue
