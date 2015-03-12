@@ -45,7 +45,7 @@ edn and placed on the "updates" queue.
 
 ```clojure
 (ns example
-  (:require [democracyworks.kehaar :as kehaar]
+  (:require [democracyworks.kehaar :as k]
             [langohr.consumers :as lc]))
 
 (defn factorial [n]
@@ -53,7 +53,7 @@ edn and placed on the "updates" queue.
 
 (lc/subscribe a-rabbit-channel
               "get-factorial"
-              (kehaar/simple-responder factorial)
+              (k/simple-responder factorial)
               {:auto-ack true})
 ```
 
@@ -65,15 +65,15 @@ edn and delivered to the reply-to queue with the correlation ID.
 
 ```clojure
 (ns example
-  (:require [democracyworks.kehaar :as kehaar]
+  (:require [democracyworks.kehaar :as k]
             [clojure.core.async :as async]))
 
 (def factorial-ch (async/chan))
 (def request-factorial (kehaar/ch->response-fn factorial-ch))
 
-(kehaar/wire-up-service a-rabbit-channel
-                        "get-factorial"
-                        factorial-ch)
+(k/wire-up-service a-rabbit-channel
+                   "get-factorial"
+                   factorial-ch)
 ```
 
 Calling `(request-factorial 5)` will return a core.async channel for
