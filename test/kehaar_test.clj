@@ -1,6 +1,6 @@
-(ns democracyworks.kehaar-test
+(ns kehaar-test
   (:require [clojure.test :refer :all]
-            [democracyworks.kehaar :refer :all]
+            [kehaar :refer :all]
             [clojure.core.async :as async]))
 
 (defn edn-bytes

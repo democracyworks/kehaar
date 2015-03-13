@@ -1,4 +1,4 @@
-(ns democracyworks.kehaar
+(ns kehaar
   (:require [clojure.core.async :as async]
             [clojure.edn :as edn]
             [langohr.basic :as lb]

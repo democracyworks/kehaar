@@ -1,15 +1,17 @@
-# democracyworks.kehaar
+# democracyworks/kehaar
 
 A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 ## Usage
+
+Add `[democracyworks/kehaar "0.1.0"]` to your dependencies.
 
 ### Passing messages from RabbitMQ to core.async
 
 ```clojure
 (ns example
   (:require [core.async :as async]
-            [democracyworks.kehaar :as k]
+            [kehaar :as k]
             [langohr.consumers :as lc]))
 
 (def messages-from-rabbit (async/chan))
@@ -29,7 +31,7 @@ you like.
 ```clojure
 (ns example
   (:require [core.async :as async]
-            [democracyworks.kehaar :as k]))
+            [kehaar :as k]))
 
 (def outgoing-messages (async/chan))
 
@@ -45,7 +47,7 @@ edn and placed on the "updates" queue.
 
 ```clojure
 (ns example
-  (:require [democracyworks.kehaar :as k]
+  (:require [kehaar :as k]
             [langohr.consumers :as lc]))
 
 (defn factorial [n]
@@ -65,7 +67,7 @@ edn and delivered to the reply-to queue with the correlation ID.
 
 ```clojure
 (ns example
-  (:require [democracyworks.kehaar :as k]
+  (:require [kehaar :as k]
             [clojure.core.async :as async]))
 
 (def factorial-ch (async/chan))
