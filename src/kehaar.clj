@@ -23,11 +23,8 @@
 (defn async->rabbit
   "Forward all messages on channel to the RabbitMQ queue."
   ([channel rabbit-channel queue]
-   (async->rabbit channel rabbit-channel "" queue {:exclusive false :auto-delete true}))
-  ([channel rabbit-channel exchange queue queue-options]
-   (lq/declare rabbit-channel
-               queue
-               queue-options)
+   (async->rabbit channel rabbit-channel "" queue))
+  ([channel rabbit-channel exchange queue]
    (async/go-loop []
      (let [message (async/<! channel)]
        (lb/publish rabbit-channel exchange queue (pr-str message))
