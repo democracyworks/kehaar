@@ -22,3 +22,22 @@
 
     (rmq/close ch)
     (rmq/close conn)))
+
+(deftest ^:rabbit-mq wire-up-service-test
+  (let [conn (rmq/connect)
+        ch (lch/open conn)
+
+        rabbit-queue (lq/declare-server-named ch {:exclusive true})
+        chan (async/chan)
+        response-fn (ch->response-fn chan)]
+
+    (lc/subscribe ch rabbit-queue (simple-responder str))
+    (wire-up-service ch rabbit-queue chan)
+
+    (let [message {:testing "wire-up"}
+          response-chan (response-fn message)
+          response (async/<!! response-chan)]
+      (is (= response (str message))))
+
+    (rmq/close ch)
+    (rmq/close conn)))

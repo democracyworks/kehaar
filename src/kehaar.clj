@@ -61,14 +61,8 @@
                     queue {:exclusive false :auto-delete true}
                     1000 channel))
   ([rabbit-channel exchange queue queue-options timeout channel]
-   (let [response-queue (str queue "." (java.util.UUID/randomUUID))
+   (let [response-queue (lq/declare-server-named rabbit-channel {:exclusive true :auto-delete true})
          pending-calls (atom {})]
-     (lq/declare rabbit-channel
-                 queue
-                 queue-options)
-     (lq/declare rabbit-channel
-                 response-queue
-                 {:exclusive true :auto-delete true})
      (lc/subscribe rabbit-channel
                    response-queue
                    (fn [ch {:keys [correlation-id]} ^bytes payload]
