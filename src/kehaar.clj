@@ -40,17 +40,30 @@
        (lb/publish rabbit-channel exchange queue (pr-str message))
        (recur)))))
 
-(defn simple-responder
+(defn fn->handler-fn
   "Returns a RabbitMQ message handler function which calls f for each
   incoming message and replies on the reply-to queue with the
   response."
-  ([f] (simple-responder f ""))
+  ([f] (fn->handler-fn f ""))
   ([f exchange]
    (fn [ch {:keys [reply-to correlation-id]} ^bytes payload]
      (let [message (read-payload payload)
            response (f message)]
        (lb/publish ch exchange reply-to (pr-str response)
                    {:correlation-id correlation-id})))))
+
+(defn responder
+  "Given a RabbitMQ queue and a function, subscribes to that queue,
+  calling the function on each edn-decoded message, and replies to the
+  reply-to queue with the result."
+  ([rabbit-channel queue f]
+   (responder rabbit-channel queue f {:auto-ack true}))
+  ([rabbit-channel queue f opts]
+   (let [handler-fn (fn->handler-fn f)]
+     (lc/subscribe rabbit-channel
+                   queue
+                   handler-fn
+                   opts))))
 
 (defn ch->response-fn
   "Returns a fn that takes a message, creates a core.async channel for

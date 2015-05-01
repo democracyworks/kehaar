@@ -31,6 +31,13 @@ either. **This is a breaking change.** Queues must now already be
 delcared. Additionally, internally, it uses a server-named, exclusive,
 auto-deleted queue.
 
+### kehaar/responder
+
+`kehaar/simple-responder` has been renamed `kehaar/fn->handler-fn` and
+a new function `kehaar/responder` has been made which takes a RabbitMQ
+channel and queue and a function to apply to all messages, replying on
+the reply-to queue with the result. **This is a breaking change.**
+
 ### Tests using RabbitMQ
 
 There are now tests which use RabbitMQ, however they are not run by

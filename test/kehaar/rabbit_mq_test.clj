@@ -31,7 +31,7 @@
         chan (async/chan)
         response-fn (ch->response-fn chan)]
 
-    (lc/subscribe ch rabbit-queue (simple-responder str))
+    (responder ch rabbit-queue str)
     (wire-up-service ch rabbit-queue chan)
 
     (let [message {:testing "wire-up"}

@@ -53,10 +53,9 @@ edn and placed on the "updates" queue.
 (defn factorial [n]
   (reduce * 1 (range 1 (inc n))))
 
-(lc/subscribe a-rabbit-channel
-              "get-factorial"
-              (k/simple-responder factorial)
-              {:auto-ack true})
+(responder a-rabbit-channel
+           "get-factorial"
+           factorial)
 ```
 
 edn-encoded payloads on the "get-factorial" queue will be decoded and
