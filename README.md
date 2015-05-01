@@ -13,15 +13,13 @@ Add `[democracyworks/kehaar "0.1.0-SNAPSHOT"]` to your dependencies.
 ```clojure
 (ns example
   (:require [core.async :as async]
-            [kehaar :as k]
-            [langohr.consumers :as lc]))
+            [kehaar :as k]))
 
 (def messages-from-rabbit (async/chan))
 
-(lc/subscribe a-rabbit-channel
-              "watership"
-              (k/rabbit->async messages-from-rabbit)
-              subscribe-options)
+(k/rabbit->async a-rabbit-channel
+                 "watership"
+                 messages-from-rabbit)
 ```
 
 edn-encoded payloads on the "watership" queue will be decoded and

@@ -11,8 +11,18 @@ declared. This allows, for example, the queue to be
 
 ### kehaar/rabbit->async
 
-`kehaar/rabbit->async` now blocks if the async channel's buffer is
-full, providing the opportunity for some back pressure.
+The old `kehaar/rabbit->async` function has been renamed
+`kehaar/rabbit->async-handler-fn`, and `kehaar/rabbit->async` now
+takes the RabbitMQ queue and the async channel, handling the
+subscription for you. **This is a breaking change.**
+
+`rabbit->async` and `async->rabbit` now appropriately mirror the
+other.
+
+### kehaar/rabbit->async-handler-fn
+
+`kehaar/rabbit->async-handler-fn` now blocks if the async channel's
+buffer is full, providing the opportunity for some back pressure.
 
 ### kehaar/wire-up-service
 

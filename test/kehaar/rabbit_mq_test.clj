@@ -16,7 +16,7 @@
         response-chan (async/chan)
         message {:test (java.util.UUID/randomUUID)}]
     (async->rabbit chan ch rabbit-queue)
-    (lc/subscribe ch rabbit-queue (rabbit->async response-chan) {:auto-ack true})
+    (rabbit->async ch rabbit-queue response-chan)
     (async/>!! chan message)
     (is (= message (async/<!! response-chan)))
 

@@ -10,7 +10,7 @@
       (String. "UTF-8")
       edn/read-string))
 
-(defn rabbit->async
+(defn rabbit->async-handler-fn
   "Returns a RabbitMQ message handler function which forwards all
   message payloads to `channel`. Assumes that all payloads are UTF-8
   edn strings."
@@ -18,6 +18,17 @@
   (fn [ch meta ^bytes payload]
     (let [message (read-payload payload)]
       (async/>!! channel message))))
+
+(defn rabbit->async
+  "Subscribes to the RabbitMQ queue, taking each payload, decoding as
+  edn, and putting the result onto the async channel."
+  ([rabbit-channel queue channel]
+   (rabbit->async rabbit-channel queue channel {:auto-ack true}))
+  ([rabbit-channel queue channel options]
+   (lc/subscribe rabbit-channel
+                 queue
+                 (rabbit->async-handler-fn channel)
+                 options)))
 
 (defn async->rabbit
   "Forward all messages on channel to the RabbitMQ queue."
