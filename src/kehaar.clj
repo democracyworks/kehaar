@@ -16,9 +16,8 @@
   edn strings."
   [channel]
   (fn [ch meta ^bytes payload]
-    (async/go
-      (let [message (read-payload payload)]
-        (async/>! channel message)))))
+    (let [message (read-payload payload)]
+      (async/>!! channel message))))
 
 (defn async->rabbit
   "Forward all messages on channel to the RabbitMQ queue."

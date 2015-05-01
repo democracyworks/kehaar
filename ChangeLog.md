@@ -9,6 +9,11 @@ on. **This is a breaking change.** Queues must now be already
 declared. This allows, for example, the queue to be
 [a server-named, exclusive, auto-deleted queue](http://clojurerabbitmq.info/articles/queues.html#declaring-a-temporary-exclusive-queue).
 
+### kehaar/rabbit->async
+
+`kehaar/rabbit->async` now blocks if the async channel's buffer is
+full, providing the opportunity for some back pressure.
+
 ### kehaar/wire-up-service
 
 `kehaar/wire-up-service` no longer declares the queue it operates on
