@@ -27,7 +27,7 @@ buffer is full, providing the opportunity for some back pressure.
 ### kehaar/wire-up-service
 
 `kehaar/wire-up-service` no longer declares the queue it operates on
-either. **This is a breaking cahnge.** Queues must now already be
+either. **This is a breaking change.** Queues must now already be
 delcared. Additionally, internally, it uses a server-named, exclusive,
 auto-deleted queue.
 
