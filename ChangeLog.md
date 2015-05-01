@@ -24,6 +24,11 @@ other.
 `kehaar/rabbit->async-handler-fn` now blocks if the async channel's
 buffer is full, providing the opportunity for some back pressure.
 
+### kehaar/ch->response-fn
+
+`kehaar/ch->response-fn` now returns promises instead of async
+channels for the caller to wait on. **This is a breaking change.**
+
 ### kehaar/wire-up-service
 
 `kehaar/wire-up-service` no longer declares the queue it operates on

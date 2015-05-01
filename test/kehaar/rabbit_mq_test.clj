@@ -35,8 +35,8 @@
     (wire-up-service ch rabbit-queue chan)
 
     (let [message {:testing "wire-up"}
-          response-chan (response-fn message)
-          response (async/<!! response-chan)]
+          response-promise (response-fn message)
+          response @response-promise]
       (is (= response (str message))))
 
     (rmq/close ch)
