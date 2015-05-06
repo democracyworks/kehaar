@@ -10,34 +10,41 @@
       (String. "UTF-8")
       edn/read-string))
 
-(defn rabbit->async
+(defn rabbit->async-handler-fn
   "Returns a RabbitMQ message handler function which forwards all
   message payloads to `channel`. Assumes that all payloads are UTF-8
   edn strings."
   [channel]
   (fn [ch meta ^bytes payload]
-    (async/go
-      (let [message (read-payload payload)]
-        (async/>! channel message)))))
+    (let [message (read-payload payload)]
+      (async/>!! channel message))))
+
+(defn rabbit->async
+  "Subscribes to the RabbitMQ queue, taking each payload, decoding as
+  edn, and putting the result onto the async channel."
+  ([rabbit-channel queue channel]
+   (rabbit->async rabbit-channel queue channel {:auto-ack true}))
+  ([rabbit-channel queue channel options]
+   (lc/subscribe rabbit-channel
+                 queue
+                 (rabbit->async-handler-fn channel)
+                 options)))
 
 (defn async->rabbit
   "Forward all messages on channel to the RabbitMQ queue."
   ([channel rabbit-channel queue]
-   (async->rabbit channel rabbit-channel "" queue {:exclusive false :auto-delete true}))
-  ([channel rabbit-channel exchange queue queue-options]
-   (lq/declare rabbit-channel
-               queue
-               queue-options)
+   (async->rabbit channel rabbit-channel "" queue))
+  ([channel rabbit-channel exchange queue]
    (async/go-loop []
      (let [message (async/<! channel)]
        (lb/publish rabbit-channel exchange queue (pr-str message))
        (recur)))))
 
-(defn simple-responder
+(defn fn->handler-fn
   "Returns a RabbitMQ message handler function which calls f for each
   incoming message and replies on the reply-to queue with the
   response."
-  ([f] (simple-responder f ""))
+  ([f] (fn->handler-fn f ""))
   ([f exchange]
    (fn [ch {:keys [reply-to correlation-id]} ^bytes payload]
      (let [message (read-payload payload)
@@ -45,16 +52,29 @@
        (lb/publish ch exchange reply-to (pr-str response)
                    {:correlation-id correlation-id})))))
 
+(defn responder
+  "Given a RabbitMQ queue and a function, subscribes to that queue,
+  calling the function on each edn-decoded message, and replies to the
+  reply-to queue with the result."
+  ([rabbit-channel queue f]
+   (responder rabbit-channel queue f {:auto-ack true}))
+  ([rabbit-channel queue f opts]
+   (let [handler-fn (fn->handler-fn f)]
+     (lc/subscribe rabbit-channel
+                   queue
+                   handler-fn
+                   opts))))
+
 (defn ch->response-fn
-  "Returns a fn that takes a message, creates a core.async channel for
-  the response for that message, and puts [response-channel, message]
-  on the channel given. Returns the response-channel."
+  "Returns a fn that takes a message, creates a promise for the
+  response for that message, and puts [response-promise, message] on
+  the channel given. Returns the response-promise."
   [channel]
   (fn [message]
-    (let [response-channel (async/chan)]
+    (let [response-promise (promise)]
       (async/go
-        (async/>! channel [response-channel message]))
-      response-channel)))
+        (async/>! channel [response-promise message]))
+      response-promise)))
 
 (defn wire-up-service
   "Wires up a core.async channel (managed through ch->response-fn) to
@@ -62,28 +82,21 @@
   ([rabbit-channel queue channel]
    (wire-up-service rabbit-channel ""
                     queue {:exclusive false :auto-delete true}
-                    1000 channel))
+                    (* 5 60 1000) channel))
   ([rabbit-channel exchange queue queue-options timeout channel]
-   (let [response-queue (str queue "." (java.util.UUID/randomUUID))
+   (let [response-queue (lq/declare-server-named rabbit-channel {:exclusive true :auto-delete true})
          pending-calls (atom {})]
-     (lq/declare rabbit-channel
-                 queue
-                 queue-options)
-     (lq/declare rabbit-channel
-                 response-queue
-                 {:exclusive true :auto-delete true})
      (lc/subscribe rabbit-channel
                    response-queue
                    (fn [ch {:keys [correlation-id]} ^bytes payload]
-                     (when-let [response-channel (@pending-calls correlation-id)]
-                       (async/go
-                         (async/>! response-channel (read-payload payload)))
+                     (when-let [response-promise (@pending-calls correlation-id)]
+                       (deliver response-promise (read-payload payload))
                        (swap! pending-calls dissoc correlation-id)))
                    {:auto-ack true})
      (async/go-loop []
-       (let [[response-channel message] (async/<! channel)
+       (let [[response-promise message] (async/<! channel)
              correlation-id (str (java.util.UUID/randomUUID))]
-         (swap! pending-calls assoc correlation-id response-channel)
+         (swap! pending-calls assoc correlation-id response-promise)
          (lb/publish rabbit-channel
                      exchange
                      queue
@@ -92,7 +105,5 @@
                       :correlation-id correlation-id})
          (async/go
            (async/<! (async/timeout timeout))
-           (when-let [response-channel (@pending-calls correlation-id)]
-             (async/close! response-channel))
            (swap! pending-calls dissoc correlation-id))
          (recur))))))
