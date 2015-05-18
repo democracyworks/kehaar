@@ -6,7 +6,7 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 ## Usage
 
-Add `[democracyworks/kehaar "0.1.0-SNAPSHOT"]` to your dependencies.
+Add `[democracyworks/kehaar "0.2.0"]` to your dependencies.
 
 ### Passing messages from RabbitMQ to core.async
 
