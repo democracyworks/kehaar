@@ -1,5 +1,17 @@
 # Change Log
 
+## Changes between Kehaar 0.2.0 and 0.2.1
+
+### `nil?` checks when taking values from async channels
+
+Pulling from a core.async channel will return `nil` if the channel is
+closed, so now we check for that and stop trying to handle those
+messages and stop trying to pull more.
+
+### Updated dependencies
+
+Use Clojure 1.7.0-beta3 and Langohr 3.2.0.
+
 ## Changes between Kehaar 0.1.0 and 0.2.0
 
 ### kehaar/async->rabbit
