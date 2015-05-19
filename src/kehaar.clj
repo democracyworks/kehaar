@@ -36,7 +36,7 @@
    (async->rabbit channel rabbit-channel "" queue))
   ([channel rabbit-channel exchange queue]
    (async/go-loop []
-     (let [message (async/<! channel)]
+     (when-let [message (async/<! channel)]
        (lb/publish rabbit-channel exchange queue (pr-str message))
        (recur)))))
 
@@ -94,16 +94,16 @@
                        (swap! pending-calls dissoc correlation-id)))
                    {:auto-ack true})
      (async/go-loop []
-       (let [[response-promise message] (async/<! channel)
-             correlation-id (str (java.util.UUID/randomUUID))]
-         (swap! pending-calls assoc correlation-id response-promise)
-         (lb/publish rabbit-channel
-                     exchange
-                     queue
-                     (pr-str message)
-                     {:reply-to response-queue
-                      :correlation-id correlation-id})
-         (async/go
-           (async/<! (async/timeout timeout))
-           (swap! pending-calls dissoc correlation-id))
-         (recur))))))
+       (when-let [[response-promise message] (async/<! channel)]
+         (let [correlation-id (str (java.util.UUID/randomUUID))]
+           (swap! pending-calls assoc correlation-id response-promise)
+           (lb/publish rabbit-channel
+                       exchange
+                       queue
+                       (pr-str message)
+                       {:reply-to response-queue
+                        :correlation-id correlation-id})
+           (async/go
+             (async/<! (async/timeout timeout))
+             (swap! pending-calls dissoc correlation-id))
+           (recur)))))))
