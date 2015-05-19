@@ -36,9 +36,10 @@
    (async->rabbit channel rabbit-channel "" queue))
   ([channel rabbit-channel exchange queue]
    (async/go-loop []
-     (when-let [message (async/<! channel)]
-       (lb/publish rabbit-channel exchange queue (pr-str message))
-       (recur)))))
+     (let [message (async/<! channel)]
+       (when-not (nil? message)
+         (lb/publish rabbit-channel exchange queue (pr-str message))
+         (recur))))))
 
 (defn fn->handler-fn
   "Returns a RabbitMQ message handler function which calls f for each
@@ -94,16 +95,18 @@
                        (swap! pending-calls dissoc correlation-id)))
                    {:auto-ack true})
      (async/go-loop []
-       (when-let [[response-promise message] (async/<! channel)]
-         (let [correlation-id (str (java.util.UUID/randomUUID))]
-           (swap! pending-calls assoc correlation-id response-promise)
-           (lb/publish rabbit-channel
-                       exchange
-                       queue
-                       (pr-str message)
-                       {:reply-to response-queue
-                        :correlation-id correlation-id})
-           (async/go
-             (async/<! (async/timeout timeout))
-             (swap! pending-calls dissoc correlation-id))
-           (recur)))))))
+       (let [ch-message (async/<! channel)]
+         (when-not (nil? ch-message)
+           (let [[response-promise message] ch-message
+                 correlation-id (str (java.util.UUID/randomUUID))]
+             (swap! pending-calls assoc correlation-id response-promise)
+             (lb/publish rabbit-channel
+                         exchange
+                         queue
+                         (pr-str message)
+                         {:reply-to response-queue
+                          :correlation-id correlation-id})
+             (async/go
+               (async/<! (async/timeout timeout))
+               (swap! pending-calls dissoc correlation-id))
+             (recur))))))))
