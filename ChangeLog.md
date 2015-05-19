@@ -1,6 +1,6 @@
 # Change Log
 
-## Changes between Kehaar 0.1.0 and 0.x
+## Changes between Kehaar 0.1.0 and 0.2.0
 
 ### kehaar/async->rabbit
 
