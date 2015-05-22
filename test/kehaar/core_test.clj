@@ -1,6 +1,6 @@
-(ns kehaar-test
+(ns kehaar.core-test
   (:require [clojure.test :refer :all]
-            [kehaar :refer :all]
+            [kehaar.core :refer :all]
             [clojure.core.async :as async]))
 
 (defn edn-bytes
