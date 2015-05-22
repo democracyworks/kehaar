@@ -13,7 +13,7 @@ Add `[democracyworks/kehaar "0.2.1"]` to your dependencies.
 ```clojure
 (ns example
   (:require [core.async :as async]
-            [kehaar :as k]))
+            [kehaar.core :as k]))
 
 (def messages-from-rabbit (async/chan))
 
@@ -31,7 +31,7 @@ you like.
 ```clojure
 (ns example
   (:require [core.async :as async]
-            [kehaar :as k]))
+            [kehaar.core :as k]))
 
 (def outgoing-messages (async/chan))
 
@@ -47,15 +47,15 @@ edn and placed on the "updates" queue.
 
 ```clojure
 (ns example
-  (:require [kehaar :as k]
+  (:require [kehaar.core :as k]
             [langohr.consumers :as lc]))
 
 (defn factorial [n]
   (reduce * 1 (range 1 (inc n))))
 
-(responder a-rabbit-channel
-           "get-factorial"
-           factorial)
+(k/responder a-rabbit-channel
+             "get-factorial"
+             factorial)
 ```
 
 edn-encoded payloads on the "get-factorial" queue will be decoded and
@@ -66,11 +66,11 @@ edn and delivered to the reply-to queue with the correlation ID.
 
 ```clojure
 (ns example
-  (:require [kehaar :as k]
+  (:require [kehaar.core :as k]
             [clojure.core.async :as async]))
 
 (def factorial-ch (async/chan))
-(def request-factorial (kehaar/ch->response-fn factorial-ch))
+(def request-factorial (k/ch->response-fn factorial-ch))
 
 (k/wire-up-service a-rabbit-channel
                    "get-factorial"
