@@ -1,6 +1,6 @@
 (ns kehaar.rabbit-mq-test
   (:require [clojure.test :refer :all]
-            [kehaar :refer :all]
+            [kehaar.core :refer :all]
             [clojure.core.async :as async]
             [langohr.core :as rmq]
             [langohr.channel :as lch]
