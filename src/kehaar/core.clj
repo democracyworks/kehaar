@@ -1,4 +1,4 @@
-(ns kehaar
+(ns kehaar.core
   (:require [clojure.core.async :as async]
             [clojure.edn :as edn]
             [langohr.basic :as lb]
