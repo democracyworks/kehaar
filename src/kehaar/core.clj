@@ -3,7 +3,8 @@
             [clojure.edn :as edn]
             [langohr.basic :as lb]
             [langohr.consumers :as lc]
-            [langohr.queue :as lq]))
+            [langohr.queue :as lq]
+            [clojure.tools.logging :as log]))
 
 (defn read-payload [^bytes payload]
   (-> payload
@@ -17,7 +18,9 @@
   [channel]
   (fn [ch meta ^bytes payload]
     (let [message (read-payload payload)]
-      (async/>!! channel message))))
+      (log/info "Kehaar: Consuming message:" (pr-str message))
+      (async/>!! channel message)
+      (log/info "Kehaar: Successfully forwarded last message to core.async channel"))))
 
 (defn rabbit->async
   "Subscribes to the RabbitMQ queue, taking each payload, decoding as
@@ -37,9 +40,10 @@
   ([channel rabbit-channel exchange queue]
    (async/go-loop []
      (let [message (async/<! channel)]
-       (when-not (nil? message)
-         (lb/publish rabbit-channel exchange queue (pr-str message))
-         (recur))))))
+       (if (nil? message)
+         (log/warn "Kehaar: Received nil from core.async channel for" queue)
+         (do (lb/publish rabbit-channel exchange queue (pr-str message))
+             (recur)))))))
 
 (defn fn->handler-fn
   "Returns a RabbitMQ message handler function which calls f for each
@@ -96,7 +100,8 @@
                    {:auto-ack true})
      (async/go-loop []
        (let [ch-message (async/<! channel)]
-         (when-not (nil? ch-message)
+         (if (nil? ch-message)
+           (log/warn "Kehaar: Received nil from core.async channel for" queue)
            (let [[response-promise message] ch-message
                  correlation-id (str (java.util.UUID/randomUUID))]
              (swap! pending-calls assoc correlation-id response-promise)
