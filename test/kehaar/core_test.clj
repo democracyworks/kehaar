@@ -15,7 +15,7 @@
                :test true
                :moon-landing #inst "1969-07-20"}
       rabbit-ch :rabbit-channel
-      metadata {:year 2015}
+      metadata {:year 2015 :delivery-tag 8675309}
       payload (edn-bytes message)]
 
   (deftest rabbit->async-handler-fn-test
@@ -24,7 +24,11 @@
       (testing "only passes through the edn-decoded payload"
         (handler rabbit-ch metadata payload)
         (let [returned-message (async/<!! c)]
-          (is (= returned-message message)))))))
+          (is (= returned-message message))))
+      (testing "returns the delivery-tag metadata"
+        (is (= (:delivery-tag metadata)
+               (handler rabbit-ch metadata payload)))
+        (async/<!! c)))))
 
 (deftest ch->response-fn-test
   (let [c (async/chan)

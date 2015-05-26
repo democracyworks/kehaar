@@ -14,24 +14,26 @@
 (defn rabbit->async-handler-fn
   "Returns a RabbitMQ message handler function which forwards all
   message payloads to `channel`. Assumes that all payloads are UTF-8
-  edn strings."
+  edn strings. Returned fn returns the message delivery tag."
   [channel]
   (fn [ch meta ^bytes payload]
     (let [message (read-payload payload)]
       (log/info "Kehaar: Consuming message:" (pr-str message))
       (async/>!! channel message)
-      (log/info "Kehaar: Successfully forwarded last message to core.async channel"))))
+      (log/info "Kehaar: Successfully forwarded last message to core.async channel")
+      (:delivery-tag meta))))
 
 (defn rabbit->async
   "Subscribes to the RabbitMQ queue, taking each payload, decoding as
   edn, and putting the result onto the async channel."
   ([rabbit-channel queue channel]
-   (rabbit->async rabbit-channel queue channel {:auto-ack true}))
+   (rabbit->async rabbit-channel queue channel {:auto-ack false}))
   ([rabbit-channel queue channel options]
    (lc/subscribe rabbit-channel
                  queue
-                 (rabbit->async-handler-fn channel)
-                 options)))
+                 (comp (partial lb/ack rabbit-channel)
+                       (rabbit->async-handler-fn channel))
+                 (merge options {:auto-ack false}))))
 
 (defn async->rabbit
   "Forward all messages on channel to the RabbitMQ queue."
