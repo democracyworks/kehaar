@@ -27,7 +27,7 @@
   "Subscribes to the RabbitMQ queue, taking each payload, decoding as
   edn, and putting the result onto the async channel."
   ([rabbit-channel queue channel]
-   (rabbit->async rabbit-channel queue channel {:auto-ack false}))
+   (rabbit->async rabbit-channel queue channel {}))
   ([rabbit-channel queue channel options]
    (lc/subscribe rabbit-channel
                  queue
