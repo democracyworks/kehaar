@@ -43,7 +43,7 @@
    (async/go-loop []
      (let [message (async/<! channel)]
        (if (nil? message)
-         (log/warn "Kehaar: Received nil from core.async channel for" queue)
+         (log/warn "Kehaar: core.async channel for" queue "is closed")
          (do (lb/publish rabbit-channel exchange queue (pr-str message))
              (recur)))))))
 
@@ -103,7 +103,7 @@
      (async/go-loop []
        (let [ch-message (async/<! channel)]
          (if (nil? ch-message)
-           (log/warn "Kehaar: Received nil from core.async channel for" queue)
+           (log/warn "Kehaar: core.async channel for" queue "is closed")
            (let [[response-promise message] ch-message
                  correlation-id (str (java.util.UUID/randomUUID))]
              (swap! pending-calls assoc correlation-id response-promise)
