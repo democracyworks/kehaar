@@ -16,7 +16,7 @@
   message payloads to `channel`. Assumes that all payloads are UTF-8
   edn strings. Returned fn returns the message delivery tag."
   [channel]
-  (fn [ch {:keys delivery-tag} ^bytes payload]
+  (fn [ch {:keys [delivery-tag]} ^bytes payload]
     (let [message (read-payload payload)]
       (log/info "Kehaar: Consuming message" (str "(delivery-tag " delivery-tag "): ") (pr-str message))
       (async/>!! channel message)
