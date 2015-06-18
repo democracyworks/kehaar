@@ -1,5 +1,35 @@
 # Change Log
 
+## Changes between Kehaar 0.2.1 and 0.2.2
+
+### Add `kehaar.core` namespace
+
+Since single-level namespaces are not recommended in Clojure, we have
+moved the code that was in `kehaar` to a new `kehaar.core` ns.
+**This is a breaking change.** You will need to update all your
+`(ns ... (:require [kehaar]))` forms in your code to look more like
+this instead: `(ns ... (:require [kehaar.core]))`.
+
+### Ack-on-take in `rabbit->async`
+
+Previously kehaar auto-acked every incoming RabbitMQ message. Now it
+acks only when something successfully consumes the message from the
+core.async channel that it is forwarded to.
+
+### Logging
+
+There are now debug-level log messages when Kehaar consumes a RabbitMQ
+message and when it forwards them on to core.async channels.
+
+There are also warn-level log messages when it tries to take from a
+closed core.async channel.
+
+This adds a dependency on `clojure.tools.logging` 0.3.1.
+
+### Updated dependencies
+
+Use Clojure 1.7.0-RC2
+
 ## Changes between Kehaar 0.2.0 and 0.2.1
 
 ### `nil?` checks when taking values from async channels

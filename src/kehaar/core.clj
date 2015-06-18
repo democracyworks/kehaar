@@ -3,7 +3,8 @@
             [clojure.edn :as edn]
             [langohr.basic :as lb]
             [langohr.consumers :as lc]
-            [langohr.queue :as lq]))
+            [langohr.queue :as lq]
+            [clojure.tools.logging :as log]))
 
 (defn read-payload [^bytes payload]
   (-> payload
@@ -13,22 +14,26 @@
 (defn rabbit->async-handler-fn
   "Returns a RabbitMQ message handler function which forwards all
   message payloads to `channel`. Assumes that all payloads are UTF-8
-  edn strings."
+  edn strings. Returned fn returns the message delivery tag."
   [channel]
-  (fn [ch meta ^bytes payload]
+  (fn [ch {:keys [delivery-tag]} ^bytes payload]
     (let [message (read-payload payload)]
-      (async/>!! channel message))))
+      (log/debug "Kehaar: Consuming message" (str "(delivery-tag " delivery-tag "): ") (pr-str message))
+      (async/>!! channel message)
+      (log/debug "Kehaar: Successfully forwarded message" (str "(delivery-tag " delivery-tag ")") "to core.async channel")
+      delivery-tag)))
 
 (defn rabbit->async
   "Subscribes to the RabbitMQ queue, taking each payload, decoding as
   edn, and putting the result onto the async channel."
   ([rabbit-channel queue channel]
-   (rabbit->async rabbit-channel queue channel {:auto-ack true}))
+   (rabbit->async rabbit-channel queue channel {}))
   ([rabbit-channel queue channel options]
    (lc/subscribe rabbit-channel
                  queue
-                 (rabbit->async-handler-fn channel)
-                 options)))
+                 (comp (partial lb/ack rabbit-channel)
+                       (rabbit->async-handler-fn channel))
+                 (merge options {:auto-ack false}))))
 
 (defn async->rabbit
   "Forward all messages on channel to the RabbitMQ queue."
@@ -37,9 +42,10 @@
   ([channel rabbit-channel exchange queue]
    (async/go-loop []
      (let [message (async/<! channel)]
-       (when-not (nil? message)
-         (lb/publish rabbit-channel exchange queue (pr-str message))
-         (recur))))))
+       (if (nil? message)
+         (log/warn "Kehaar: core.async channel for" queue "is closed")
+         (do (lb/publish rabbit-channel exchange queue (pr-str message))
+             (recur)))))))
 
 (defn fn->handler-fn
   "Returns a RabbitMQ message handler function which calls f for each
@@ -96,7 +102,8 @@
                    {:auto-ack true})
      (async/go-loop []
        (let [ch-message (async/<! channel)]
-         (when-not (nil? ch-message)
+         (if (nil? ch-message)
+           (log/warn "Kehaar: core.async channel for" queue "is closed")
            (let [[response-promise message] ch-message
                  correlation-id (str (java.util.UUID/randomUUID))]
              (swap! pending-calls assoc correlation-id response-promise)

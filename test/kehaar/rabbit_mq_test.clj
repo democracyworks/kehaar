@@ -19,7 +19,7 @@
     (rabbit->async ch rabbit-queue response-chan)
     (async/>!! chan message)
     (is (= message (async/<!! response-chan)))
-
+    (Thread/sleep 500) ; wait for ack before closing channel
     (rmq/close ch)
     (rmq/close conn)))
 
