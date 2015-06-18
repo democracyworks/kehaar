@@ -18,9 +18,9 @@
   [channel]
   (fn [ch {:keys [delivery-tag]} ^bytes payload]
     (let [message (read-payload payload)]
-      (log/info "Kehaar: Consuming message" (str "(delivery-tag " delivery-tag "): ") (pr-str message))
+      (log/debug "Kehaar: Consuming message" (str "(delivery-tag " delivery-tag "): ") (pr-str message))
       (async/>!! channel message)
-      (log/info "Kehaar: Successfully forwarded message" (str "(delivery-tag " delivery-tag ")") "to core.async channel")
+      (log/debug "Kehaar: Successfully forwarded message" (str "(delivery-tag " delivery-tag ")") "to core.async channel")
       delivery-tag)))
 
 (defn rabbit->async
