@@ -1,6 +1,6 @@
 # Change Log
 
-## Changes between Kehaar 0.2.1 and 0.2.2
+## Changes between Kehaar 0.2.1 and 0.3.0
 
 ### Add `kehaar.core` namespace
 
