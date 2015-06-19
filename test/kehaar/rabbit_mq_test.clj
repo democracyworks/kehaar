@@ -41,3 +41,32 @@
 
     (rmq/close ch)
     (rmq/close conn)))
+
+(deftest ^:rabbit-mq wire-up-stream-service-test
+  (let [conn (rmq/connect)
+        ch (lch/open conn)
+
+        rabbit-queue (lq/declare-server-named ch {:exclusive true})
+        chan (async/chan)
+        response-fn (ch->stream-response-fn chan)
+
+        response-sum (atom 0)
+        process-fn (fn [additive]
+                     (swap! response-sum + additive))
+
+        generative-fn (fn [chan {:keys [upto]}]
+                        (async/go-loop [values (take 10 (iterate inc 0))]
+                          (let [val (first values)]
+                            (if (nil? val)
+                              (async/>! chan :stop)
+                              (do
+                                (async/>! chan val)
+                                (recur (rest values)))))))]
+    (stream-responder ch rabbit-queue generative-fn)
+    (wire-up-stream-service ch rabbit-queue chan)
+    (response-fn {:upto 10}
+                 process-fn
+                 (fn []
+                   (is (= 45 @response-sum))
+                   (rmq/close ch)
+                   (rmq/close conn)))))
