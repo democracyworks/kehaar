@@ -73,15 +73,15 @@
                    opts))))
 
 (defn ch->response-fn
-  "Returns a fn that takes a message, creates a promise for the
-  response for that message, and puts [response-promise, message] on
-  the channel given. Returns the response-promise."
+  "Returns a fn that takes a message, creates a core.async channel for
+  the response for that message, and puts [response-channel, message]
+  on the channel given. Returns the response-channel."
   [channel]
   (fn [message]
-    (let [response-promise (promise)]
+    (let [response-channel (async/chan)]
       (async/go
-        (async/>! channel [response-promise message]))
-      response-promise)))
+        (async/>! channel [response-channel message]))
+      response-channel)))
 
 (defn wire-up-service
   "Wires up a core.async channel (managed through ch->response-fn) to
@@ -89,24 +89,25 @@
   ([rabbit-channel queue channel]
    (wire-up-service rabbit-channel ""
                     queue {:exclusive false :auto-delete true}
-                    (* 5 60 1000) channel))
+                    1000 channel))
   ([rabbit-channel exchange queue queue-options timeout channel]
    (let [response-queue (lq/declare-server-named rabbit-channel {:exclusive true :auto-delete true})
          pending-calls (atom {})]
      (lc/subscribe rabbit-channel
                    response-queue
                    (fn [ch {:keys [correlation-id]} ^bytes payload]
-                     (when-let [response-promise (@pending-calls correlation-id)]
-                       (deliver response-promise (read-payload payload))
+                     (when-let [response-channel (@pending-calls correlation-id)]
+                       (async/go
+                         (async/>! response-channel (read-payload payload)))
                        (swap! pending-calls dissoc correlation-id)))
                    {:auto-ack true})
      (async/go-loop []
        (let [ch-message (async/<! channel)]
          (if (nil? ch-message)
            (log/warn "Kehaar: core.async channel for" queue "is closed")
-           (let [[response-promise message] ch-message
+           (let [[response-channel message] ch-message
                  correlation-id (str (java.util.UUID/randomUUID))]
-             (swap! pending-calls assoc correlation-id response-promise)
+             (swap! pending-calls assoc correlation-id response-channel)
              (lb/publish rabbit-channel
                          exchange
                          queue

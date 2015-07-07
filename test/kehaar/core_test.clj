@@ -34,5 +34,5 @@
   (let [c (async/chan)
         response-fn (ch->response-fn c)
         message {:test true}
-        response-promise (response-fn message)]
-    (is (= [response-promise message] (async/<!! c)))))
+        response-channel (response-fn message)]
+    (is (= [response-channel message] (async/<!! c)))))
