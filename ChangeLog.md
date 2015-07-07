@@ -1,5 +1,13 @@
 # Change Log
 
+## Changes between Kehaar 0.3.0 and HEAD
+
+### kehaar.core/ch->response-fn
+
+In 0.2.0 `ch->response-fn` started returning promises instead of core.async
+channels. That is now reverted back to core.async channels.
+**This is a breaking change.**
+
 ## Changes between Kehaar 0.2.1 and 0.3.0
 
 ### Add `kehaar.core` namespace
