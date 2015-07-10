@@ -16,7 +16,7 @@
     (kehaar.core/responder ch queue-name handler)
     ch))
 
-(defn incoming-events
+(defn incoming-events-channel
   "Wire up a channel that will receive incoming events that match
   `routing-key`.
 
