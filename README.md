@@ -15,6 +15,10 @@ of the low-level RabbitMQ channel and queue management for you.
 
 ## High-level interface
 
+```
+(require '[kehaar.wire-up :as wire-up])
+```
+
 The patterns of services we use in Kraken fall into one of these
 patterns:
 
@@ -23,9 +27,9 @@ patterns:
 
 ```
 (let [ch (declare-events-exchange conn
-                                   "events"
-                                   "topic"
-                                   (config :topics "events"))]
+                                  "events"
+                                  "topic"
+                                  (config :topics "events"))]
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
@@ -37,8 +41,7 @@ patterns:
 (let [ch (external-service-channel conn
                                    "service-works.service.process"
                                    (config :queues "service-works.service.process")
-                                   process-channel ;; a core.async channel
-                                   )]
+                                   process-channel)] ;; a core.async channel
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
@@ -49,8 +52,7 @@ patterns:
 (let [ch (incoming-service-handler conn
                                    "service-works.service.process"
                                    (config :queues "service-works.service.process")
-                                   handler ;; a handler function
-                                   )]
+                                   handler)] ;; a handler function
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
@@ -63,8 +65,7 @@ patterns:
                           "my-service.events.create-something"
                           (config :queues "my-service.events.create-something")
                           "create-something"
-                          create-something-events ;; events core.async channel
-                          )]
+                          create-something-events)] ;; events core.async channel
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
@@ -76,8 +77,7 @@ patterns:
 (let [ch (outgoing-events-channel conn
                           "events"
                           "create-something"
-                          create-something-events ;; events core.async channel
-                          )]
+                          create-something-events)] ;; events core.async channel
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
