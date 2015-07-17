@@ -1,12 +1,21 @@
 # Change Log
 
-## Changes between Kehaar 0.3.0 and HEAD
+## Changes between Kehaar 0.3.0 and 0.4.0
 
 ### kehaar.core/ch->response-fn
 
 In 0.2.0 `ch->response-fn` started returning promises instead of core.async
 channels. That is now reverted back to core.async channels.
 **This is a breaking change.**
+
+### kehaar.wire-up
+
+The `kehaar.wire-up` namespace contains a higher-level interface for
+declaring and setting up queues.
+
+### Updated Clojure dependency to 1.7.0.
+
+It came out.
 
 ## Changes between Kehaar 0.2.1 and 0.3.0
 

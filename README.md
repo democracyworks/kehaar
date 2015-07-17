@@ -6,24 +6,23 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 ## Usage
 
-Add `[democracyworks/kehaar "0.3.0"]` to your dependencies.
+Add `[democracyworks/kehaar "0.4.0"]` to your dependencies.
 
 There are two ways to use Kehaar. Functions in `kehaar.core` are a
 low-level interface to connect up Rabbit and core.async. Functions in
 `kehaar.wire-up` use these low-level functions but also will do a lot
 of the low-level RabbitMQ channel and queue management for you.
 
-## High-level interface
+### High-level interface
 
 ```
 (require '[kehaar.wire-up :as wire-up])
 ```
 
-The patterns of services we use in Kraken fall into one of these
-patterns:
+Some typical patterns:
 
-* You want to listen for events on the events exchange. So you'll need
-  to declare it first.
+* You want to listen for events on the "events" exchange. So you'll
+  need to declare it first.
 
 ```
 (let [ch (declare-events-exchange conn
@@ -57,8 +56,8 @@ patterns:
   (rmq/close ch))
 ```
 
-* You want to listen for events on the events exchange. (First declare
-  the exchange above, only do that once.)
+* You want to listen for events on the "events" exchange. (First
+  declare the exchange above, only do that once.)
 
 ```
 (let [ch (incoming-events-channel conn
@@ -82,9 +81,9 @@ patterns:
   (rmq/close ch))
 ```
 
-## Low-level interface
+### Low-level interface
 
-### Passing messages from RabbitMQ to core.async
+#### Passing messages from RabbitMQ to core.async
 
 ```clojure
 (ns example
@@ -102,7 +101,7 @@ edn-encoded payloads on the "watership" queue will be decoded and
 placed on the `messages-from-rabbit` channel for you to deal with as
 you like.
 
-### Passing messages from core.async to RabbitMQ
+#### Passing messages from core.async to RabbitMQ
 
 ```clojure
 (ns example
@@ -119,7 +118,7 @@ you like.
 All messages sent to the `outgoing-messages` channel will encoded as
 edn and placed on the "updates" queue.
 
-### Applying a function to all messages on a RabbitMQ queue and responding on the reply-to queue with a correlation ID.
+#### Applying a function to all messages on a RabbitMQ queue and responding on the reply-to queue with a correlation ID.
 
 ```clojure
 (ns example
@@ -138,7 +137,7 @@ edn-encoded payloads on the "get-factorial" queue will be decoded and
 passed to the `factorial` function and the result will be encoded as
 edn and delivered to the reply-to queue with the correlation ID.
 
-### Using core.async channels to enqueue and receive replies to a RabbitMQ queue
+#### Using core.async channels to enqueue and receive replies to a RabbitMQ queue
 
 ```clojure
 (ns example
