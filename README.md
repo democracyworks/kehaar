@@ -8,6 +8,82 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 Add `[democracyworks/kehaar "0.3.0"]` to your dependencies.
 
+There are two ways to use Kehaar. Functions in `kehaar.core` are a
+low-level interface to connect up Rabbit and core.async. Functions in
+`kehaar.wire-up` use these low-level functions but also will do a lot
+of the low-level RabbitMQ channel and queue management for you.
+
+## High-level interface
+
+```
+(require '[kehaar.wire-up :as wire-up])
+```
+
+The patterns of services we use in Kraken fall into one of these
+patterns:
+
+* You want to listen for events on the events exchange. So you'll need
+  to declare it first.
+
+```
+(let [ch (declare-events-exchange conn
+                                  "events"
+                                  "topic"
+                                  (config :topics "events"))]
+  ;; later, on exit, close ch
+  (rmq/close ch))
+```
+
+* You want to connect to an external query-response service over
+  RabbitMQ.
+
+```
+(let [ch (external-service-channel conn
+                                   "service-works.service.process"
+                                   (config :queues "service-works.service.process")
+                                   process-channel)] ;; a core.async channel
+  ;; later, on exit, close ch
+  (rmq/close ch))
+```
+
+* You want to make an query-response service based on a handler.
+
+```
+(let [ch (incoming-service-handler conn
+                                   "service-works.service.process"
+                                   (config :queues "service-works.service.process")
+                                   handler)] ;; a handler function
+  ;; later, on exit, close ch
+  (rmq/close ch))
+```
+
+* You want to listen for events on the events exchange. (First declare
+  the exchange above, only do that once.)
+
+```
+(let [ch (incoming-events-channel conn
+                                  "my-service.events.create-something"
+                                  (config :queues "my-service.events.create-something")
+                                  "create-something"
+                                  create-something-events)] ;; events core.async channel
+  ;; later, on exit, close ch
+  (rmq/close ch))
+```
+
+* You want to send events on the events exchange. (First declare the
+  exchange above, only do that once.)
+
+```
+(let [ch (outgoing-events-channel conn
+                                  "events"
+                                  "create-something"
+                                  create-something-events)] ;; events core.async channel
+  ;; later, on exit, close ch
+  (rmq/close ch))
+```
+
+## Low-level interface
+
 ### Passing messages from RabbitMQ to core.async
 
 ```clojure
