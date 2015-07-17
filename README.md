@@ -62,10 +62,10 @@ patterns:
 
 ```
 (let [ch (incoming-events-channel conn
-                          "my-service.events.create-something"
-                          (config :queues "my-service.events.create-something")
-                          "create-something"
-                          create-something-events)] ;; events core.async channel
+                                  "my-service.events.create-something"
+                                  (config :queues "my-service.events.create-something")
+                                  "create-something"
+                                  create-something-events)] ;; events core.async channel
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
@@ -75,9 +75,9 @@ patterns:
 
 ```
 (let [ch (outgoing-events-channel conn
-                          "events"
-                          "create-something"
-                          create-something-events)] ;; events core.async channel
+                                  "events"
+                                  "create-something"
+                                  create-something-events)] ;; events core.async channel
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
