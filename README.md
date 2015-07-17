@@ -15,7 +15,7 @@ of the low-level RabbitMQ channel and queue management for you.
 
 ### High-level interface
 
-```
+```clojure
 (require '[kehaar.wire-up :as wire-up])
 ```
 
@@ -24,7 +24,7 @@ Some typical patterns:
 * You want to listen for events on the "events" exchange. So you'll
   need to declare it first.
 
-```
+```clojure
 (let [ch (declare-events-exchange conn
                                   "events"
                                   "topic"
@@ -36,7 +36,7 @@ Some typical patterns:
 * You want to connect to an external query-response service over
   RabbitMQ.
 
-```
+```clojure
 (let [ch (external-service-channel conn
                                    "service-works.service.process"
                                    (config :queues "service-works.service.process")
@@ -47,7 +47,7 @@ Some typical patterns:
 
 * You want to make an query-response service based on a handler.
 
-```
+```clojure
 (let [ch (incoming-service-handler conn
                                    "service-works.service.process"
                                    (config :queues "service-works.service.process")
@@ -59,7 +59,7 @@ Some typical patterns:
 * You want to listen for events on the "events" exchange. (First
   declare the exchange above, only do that once.)
 
-```
+```clojure
 (let [ch (incoming-events-channel conn
                                   "my-service.events.create-something"
                                   (config :queues "my-service.events.create-something")
@@ -72,7 +72,7 @@ Some typical patterns:
 * You want to send events on the events exchange. (First declare the
   exchange above, only do that once.)
 
-```
+```clojure
 (let [ch (outgoing-events-channel conn
                                   "events"
                                   "create-something"
