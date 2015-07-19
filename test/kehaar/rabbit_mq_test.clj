@@ -8,6 +8,13 @@
             [langohr.basic :as lb]
             [langohr.consumers :as lc]))
 
+(deftest ^:rabbit-mq connect-to-broker-test
+  (testing "connects to running broker and returns connection"
+    (is (= (class (connect-to-broker {}))
+           com.novemberain.langohr.Connection)))
+  (testing "returns nil when broker unavailable"
+    (is (nil? (connect-to-broker {:host "localhost" :port 65535} 1)))))
+
 (deftest ^:rabbit-mq async->rabbit-rabbit->async-test
   (let [conn (rmq/connect)
         ch (lch/open conn)
