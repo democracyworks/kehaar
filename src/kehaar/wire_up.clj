@@ -24,8 +24,10 @@
 
   Returns a langohr channel. Please close it on exit."
   [connection topic-name routing-key channel]
-  (let [ch (langohr.channel/open connection)]
-    (kehaar.core/async=>rabbit channel ch topic-name routing-key)
+  (let [ch (langohr.channel/open connection)
+        message-channel (async/chan 1000 (map (fn [x] {:message x})))]
+    (async/pipe channel message-channel true)
+    (kehaar.core/async=>rabbit message-channel ch topic-name routing-key)
     ch))
 
 (defn declare-events-exchange

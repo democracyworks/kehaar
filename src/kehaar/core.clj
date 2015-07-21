@@ -80,7 +80,7 @@
 
   ```
   {:message  {...}  ;; message payload
-  :metadata {...}} ;; rabbit metadata
+  :metadata {...}} ;; rabbit metadata (optional)
   ```"
   ([channel rabbit-channel queue]
    (async=>rabbit channel rabbit-channel "" queue))

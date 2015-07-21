@@ -21,7 +21,7 @@
       (try
         (dotimes [x 1000]
           (let [x (java.util.UUID/randomUUID)]
-            (bounded>!! ch-out {:message {:hello! :there! :uuid x}} 100)
+            (bounded>!! ch-out {:hello! :there! :uuid x} 100)
             (is (= {:hello! :there! :uuid x} (:message (bounded<!! ch-in 100))))))
         (finally
           (async/close! ch-in)
@@ -43,7 +43,7 @@
                              :let [x (java.util.UUID/randomUUID)]]
                          {:hello! x})]
           (doseq [message messages]
-            (bounded>!! ch-out {:message message} 100))
+            (bounded>!! ch-out message 100))
           (doseq [message messages]
             (is (= message (:message (bounded<!! ch-in 100))))))
         (finally
@@ -64,7 +64,7 @@
       (try
         (start-event-handler! ch-in (fn [message]
                                       (bounded>!! test-chan :hello 100)))
-        (bounded>!! ch-out {:message :hello} 100)
+        (bounded>!! ch-out :hello 100)
         (is (= :hello (bounded<!! test-chan 100)))
         (finally
           (async/close! ch-in)
