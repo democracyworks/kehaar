@@ -14,9 +14,11 @@
   Returns a langohr channel. Please close it on exit."
   [connection queue-name options routing-key channel timeout]
   (let [ch (langohr.channel/open connection)
-        queue (:queue (langohr.queue/declare ch queue-name options))]
+        queue (:queue (langohr.queue/declare ch queue-name options))
+        message-channel (async/chan 1 (map :message))]
+    (async/pipe message-channel channel true)
     (langohr.queue/bind ch queue "events" {:routing-key routing-key})
-    (kehaar.core/rabbit=>async ch queue channel options timeout)
+    (kehaar.core/rabbit=>async ch queue message-channel options timeout)
     ch))
 
 (defn outgoing-events-channel
@@ -44,7 +46,7 @@
   them to `handler`. Will loop over all messages, logging errors. When
   `channel` is closed, stop looping."
   [channel handler]
-  (kehaar.core/thread-handler channel (fn [{:keys [message]}] (handler message))))
+  (kehaar.core/thread-handler channel handler))
 
 (defn start-responder!
   "Start a new thread that listens on in-channel and responds on

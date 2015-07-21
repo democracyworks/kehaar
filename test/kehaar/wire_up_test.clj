@@ -22,7 +22,7 @@
         (dotimes [x 1000]
           (let [x (java.util.UUID/randomUUID)]
             (bounded>!! ch-out {:hello! :there! :uuid x} 100)
-            (is (= {:hello! :there! :uuid x} (:message (bounded<!! ch-in 100))))))
+            (is (= {:hello! :there! :uuid x} (bounded<!! ch-in 100)))))
         (finally
           (async/close! ch-in)
           (async/close! ch-out)
@@ -45,7 +45,7 @@
           (doseq [message messages]
             (bounded>!! ch-out message 100))
           (doseq [message messages]
-            (is (= message (:message (bounded<!! ch-in 100))))))
+            (is (= message (bounded<!! ch-in 100)))))
         (finally
           (async/close! ch-in)
           (async/close! ch-out)
