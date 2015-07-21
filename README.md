@@ -38,23 +38,30 @@ patterns:
   RabbitMQ.
 
 ```
-(let [ch (external-service-channel conn
-                                   "service-works.service.process"
-                                   (config :queues "service-works.service.process")
-                                   process-channel)] ;; a core.async channel
+(let [ch (external-service conn
+                           "service-works.service.process"
+                           process-channel)] ;; a core.async channel
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
 
-* You want to make an query-response service based on a handler.
+* You want to make a query-response service. Send requests to
+  in-channel and get responses on out-channel (core.async channels).
 
 ```
-(let [ch (incoming-service-handler conn
-                                   "service-works.service.process"
-                                   (config :queues "service-works.service.process")
-                                   handler)] ;; a handler function
+(let [ch (incoming-service conn
+                           "service-works.service.process"
+                           (config :queues "service-works.service.process")
+                           in-channel
+                           out-channel)]
   ;; later, on exit, close ch
   (rmq/close ch))
+```
+
+Later, you can add a handler to it like this:
+
+```
+(start-responder! in-channel out-channel handler-function)
 ```
 
 * You want to listen for events on the events exchange. (First declare
@@ -65,9 +72,16 @@ patterns:
                                   "my-service.events.create-something"
                                   (config :queues "my-service.events.create-something")
                                   "create-something"
-                                  create-something-events)] ;; events core.async channel
+                                  create-something-events ;; events core.async channel
+                                  100)] ;; timeout
   ;; later, on exit, close ch
   (rmq/close ch))
+```
+
+Later, you can add an event handler like this:
+
+```
+(start-event-handler! in-channel handler-function)
 ```
 
 * You want to send events on the events exchange. (First declare the
@@ -93,14 +107,14 @@ patterns:
 
 (def messages-from-rabbit (async/chan))
 
-(k/rabbit->async a-rabbit-channel
+(k/rabbit=>async a-rabbit-channel
                  "watership"
                  messages-from-rabbit)
 ```
 
 edn-encoded payloads on the "watership" queue will be decoded and
 placed on the `messages-from-rabbit` channel for you to deal with as
-you like.
+you like. Each message has `:message` and `:metadata`.
 
 ### Passing messages from core.async to RabbitMQ
 
@@ -111,61 +125,31 @@ you like.
 
 (def outgoing-messages (async/chan))
 
-(k/async->rabbit outgoing-messages
+(k/async=>rabbit outgoing-messages
                  a-rabbit-channel
                  "updates")
 ```
 
 All messages sent to the `outgoing-messages` channel will encoded as
-edn and placed on the "updates" queue.
+edn and placed on the "updates" queue. Each message should have
+`:message` and `:metadata`.
 
-### Applying a function to all messages on a RabbitMQ queue and responding on the reply-to queue with a correlation ID.
-
-```clojure
-(ns example
-  (:require [kehaar.core :as k]
-            [langohr.consumers :as lc]))
-
-(defn factorial [n]
-  (reduce * 1 (range 1 (inc n))))
-
-(k/responder a-rabbit-channel
-             "get-factorial"
-             factorial)
-```
-
-edn-encoded payloads on the "get-factorial" queue will be decoded and
-passed to the `factorial` function and the result will be encoded as
-edn and delivered to the reply-to queue with the correlation ID.
-
-### Using core.async channels to enqueue and receive replies to a RabbitMQ queue
+### Passing messages from core.async to RabbitMQ based on reply-to
 
 ```clojure
 (ns example
-  (:require [kehaar.core :as k]
-            [clojure.core.async :as async]))
+  (:require [core.async :as async]
+            [kehaar.core :as k]))
 
-(def factorial-ch (async/chan))
-(def request-factorial (k/ch->response-fn factorial-ch))
+(def outgoing-messages (async/chan))
 
-(k/wire-up-service a-rabbit-channel
-                   "get-factorial"
-                   factorial-ch)
+(k/async=>rabbit-with-reply-to outgoing-messages
+                               a-rabbit-channel)
 ```
 
-Calling `(request-factorial 5)` will return a core.async channel for
-you to listen for the result from the "get-factorial"
-queue. `wire-up-service` listens on `factorial-ch` for messages,
-creates a response channel, sends a message to the "get-factorial"
-queue with a correlation ID, listens on a reply-to queue, and finally
-puts the response (edn-decoded, naturally) onto the response
-channel. The reply-to queue must receive a reply within 1000ms,
-otherwise it will close the response channel.
-
-```clojure
-(let [response-ch (request-factorial 5)]
-  (async/<!! response-ch)) ;;=> 120
-```
+All messages sent to the `outgoing-messages` channel will ebe ncoded
+as edn and placed on the queue specified in the `:reply-to` key in the
+metadata. Each message should have `:message` and `:metadata`.
 
 ## License
 
