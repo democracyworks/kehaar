@@ -6,26 +6,25 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 ## Usage
 
-Add `[democracyworks/kehaar "0.3.0"]` to your dependencies.
+Add `[democracyworks/kehaar "0.4.0"]` to your dependencies.
 
 There are two ways to use Kehaar. Functions in `kehaar.core` are a
 low-level interface to connect up Rabbit and core.async. Functions in
 `kehaar.wire-up` use these low-level functions but also will do a lot
 of the low-level RabbitMQ channel and queue management for you.
 
-## High-level interface
+### High-level interface
 
-```
+```clojure
 (require '[kehaar.wire-up :as wire-up])
 ```
 
-The patterns of services we use in Kraken fall into one of these
-patterns:
+Some typical patterns:
 
-* You want to listen for events on the events exchange. So you'll need
-  to declare it first.
+* You want to listen for events on the "events" exchange. So you'll
+  need to declare it first.
 
-```
+```clojure
 (let [ch (declare-events-exchange conn
                                   "events"
                                   "topic"
@@ -37,7 +36,7 @@ patterns:
 * You want to connect to an external query-response service over
   RabbitMQ.
 
-```
+```clojure
 (let [ch (external-service conn
                            "service-works.service.process"
                            process-channel)] ;; a core.async channel
@@ -48,7 +47,8 @@ patterns:
 * You want to make a query-response service. Send requests to
   in-channel and get responses on out-channel (core.async channels).
 
-```
+
+```clojure
 (let [ch (incoming-service conn
                            "service-works.service.process"
                            (config :queues "service-works.service.process")
@@ -67,7 +67,7 @@ Later, you can add a handler to it like this:
 * You want to listen for events on the events exchange. (First declare
   the exchange above, only do that once.)
 
-```
+```clojure
 (let [ch (incoming-events-channel conn
                                   "my-service.events.create-something"
                                   (config :queues "my-service.events.create-something")
@@ -87,7 +87,7 @@ Later, you can add an event handler like this:
 * You want to send events on the events exchange. (First declare the
   exchange above, only do that once.)
 
-```
+```clojure
 (let [ch (outgoing-events-channel conn
                                   "events"
                                   "create-something"
@@ -96,9 +96,9 @@ Later, you can add an event handler like this:
   (rmq/close ch))
 ```
 
-## Low-level interface
+### Low-level interface
 
-### Passing messages from RabbitMQ to core.async
+#### Passing messages from RabbitMQ to core.async
 
 ```clojure
 (ns example
@@ -116,7 +116,7 @@ edn-encoded payloads on the "watership" queue will be decoded and
 placed on the `messages-from-rabbit` channel for you to deal with as
 you like. Each message has `:message` and `:metadata`.
 
-### Passing messages from core.async to RabbitMQ
+#### Passing messages from core.async to RabbitMQ
 
 ```clojure
 (ns example
