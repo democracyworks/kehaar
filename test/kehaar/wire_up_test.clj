@@ -16,7 +16,7 @@
           ch-out (async/chan 1000)
           ch-in  (async/chan 1000)
           chs [(declare-events-exchange conn "events" "topic" {})
-               (incoming-events-channel conn "test-in" {} "test-event" ch-in 1000)
+               (incoming-events-channel conn "test-in" {} "events" "test-event" ch-in 1000)
                (outgoing-events-channel conn "events" "test-event" ch-out)]]
       (try
         (dotimes [x 1000]
@@ -36,7 +36,7 @@
           ch-out (async/chan 1000)
           ch-in  (async/chan 1000)
           chs [(declare-events-exchange conn "events" "topic" {})
-               (incoming-events-channel conn "test-in" {} "test-event" ch-in 1000)
+               (incoming-events-channel conn "test-in" {} "events" "test-event" ch-in 1000)
                (outgoing-events-channel conn "events" "test-event" ch-out)]]
       (try
         (let [messages (for [x (range 1000)
@@ -59,7 +59,7 @@
           ch-in  (async/chan 1000)
           test-chan (async/chan 1)
           chs [(declare-events-exchange conn "events" "topic" {})
-               (incoming-events-channel conn "test-in" {} "test-event" ch-in 1000)
+               (incoming-events-channel conn "test-in" {} "events" "test-event" ch-in 1000)
                (outgoing-events-channel conn "events" "test-event" ch-out)]]
       (try
         (start-event-handler! ch-in (fn [message]
