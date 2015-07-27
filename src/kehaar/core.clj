@@ -31,7 +31,7 @@
              ;; assume we're busy, requeue timed out
              [:nack delivery-tag true])))
        (catch Throwable t
-         (log/error t "fn->handler-fn: payload did not parse"
+         (log/error t "Kehaar: fn->handler-fn: payload did not parse"
                     (String. payload "UTF-8"))
          ;; don't requeue parse errors
          [:nack delivery-tag false])))))
@@ -41,7 +41,7 @@
     :ack  (lb/ack  channel delivery-tag)
     :nack (lb/nack channel delivery-tag false requeue)
     ;; otherwise, let's log that
-    (log/warn "I don't know how to process this:" ret
+    (log/warn "Kehaar: I don't know how to process this:" ret
               "I'm designed to process messages containing :ack or :nack.")))
 
 (defn rabbit=>async
@@ -71,7 +71,7 @@
                (let [~binding ch-message#]
                  ~@body)
                (catch Throwable t#
-                 (log/error t#)))
+                 (log/error t# "Kehaar: caught an exception in go-handler")))
              (recur)))))))
 
 (defn async=>rabbit
@@ -103,7 +103,7 @@
    (go-handler [{:keys [message metadata]} channel]
     (if-let [reply-to (:reply-to metadata)]
       (lb/publish rabbit-channel exchange (:reply-to metadata) (pr-str message) metadata)
-      (log/warn "No reply-to in metadata."
+      (log/warn "Kehaar: No reply-to in metadata."
                 (pr-str message)
                 (pr-str metadata))))))
 
@@ -118,7 +118,7 @@
             (try
               (f ch-message)
               (catch Throwable t
-                (log/error t)))
+                (log/error t "Kehaar: caught exception in thread-handler")))
             (recur)))))))
 
 (defn responder-fn
