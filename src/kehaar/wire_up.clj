@@ -12,12 +12,12 @@
   `routing-key`.
 
   Returns a langohr channel. Please close it on exit."
-  [connection queue-name options routing-key channel timeout]
+  [connection queue-name options exchange routing-key channel timeout]
   (let [ch (langohr.channel/open connection)
         queue (:queue (langohr.queue/declare ch queue-name options))
         message-channel (async/chan 1 (map :message))]
     (async/pipe message-channel channel true)
-    (langohr.queue/bind ch queue "events" {:routing-key routing-key})
+    (langohr.queue/bind ch queue exchange {:routing-key routing-key})
     (kehaar.core/rabbit=>async ch queue message-channel options timeout)
     ch))
 
