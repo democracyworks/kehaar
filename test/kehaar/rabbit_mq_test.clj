@@ -6,38 +6,38 @@
             [langohr.channel :as lch]
             [langohr.queue :as lq]
             [langohr.basic :as lb]
-            [langohr.consumers :as lc]))
+            [langohr.consumers :as lc]
+            [clojure.tools.logging :as log]
+            [kehaar.async :refer [bounded<!! bounded>!!]]))
 
-(deftest ^:rabbit-mq async->rabbit-rabbit->async-test
+(deftest ^:rabbit-mq async=>rabbit-rabbit=>async-test
   (let [conn (rmq/connect)
         ch (lch/open conn)
         rabbit-queue (lq/declare-server-named ch {:exclusive true})
         chan (async/chan)
         response-chan (async/chan)
         message {:test (java.util.UUID/randomUUID)}]
-    (async->rabbit chan ch rabbit-queue)
-    (rabbit->async ch rabbit-queue response-chan)
-    (async/>!! chan message)
-    (is (= message (async/<!! response-chan)))
+    (async=>rabbit chan ch rabbit-queue)
+    (rabbit=>async ch rabbit-queue response-chan)
+    (bounded>!! chan {:message message
+                     :metadata {}} 100)
+    (is (= message (:message (bounded<!! response-chan 500))))
     (Thread/sleep 500) ; wait for ack before closing channel
     (rmq/close ch)
     (rmq/close conn)))
 
-(deftest ^:rabbit-mq wire-up-service-test
+(deftest ^:rabbit-mq async=>rabbit-with-reply-to-rabbit=>async-test
   (let [conn (rmq/connect)
         ch (lch/open conn)
-
         rabbit-queue (lq/declare-server-named ch {:exclusive true})
         chan (async/chan)
-        response-fn (ch->response-fn chan)]
-
-    (responder ch rabbit-queue str)
-    (wire-up-service ch rabbit-queue chan)
-
-    (let [message {:testing "wire-up"}
-          response-chan (response-fn message)
-          response (async/<!! response-chan)]
-      (is (= response (str message))))
-
+        response-chan (async/chan)
+        message {:test (java.util.UUID/randomUUID)}]
+    (async=>rabbit-with-reply-to chan ch)
+    (rabbit=>async ch rabbit-queue response-chan)
+    (bounded>!! chan {:message message
+                      :metadata {:reply-to rabbit-queue}} 100)
+    (is (= message (:message (bounded<!! response-chan 500))))
+    (Thread/sleep 500)           ; wait for ack before closing channel
     (rmq/close ch)
     (rmq/close conn)))
