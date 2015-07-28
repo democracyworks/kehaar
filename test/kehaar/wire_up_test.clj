@@ -141,7 +141,7 @@
           chs [(incoming-service conn "this.is.my.service" {}
                                  ch-in ch-out)
                (external-service conn "this.is.my.service" ch-ext)]
-          f (kehaar.core/async->fn ch-ext)]
+          f (async->fn ch-ext)]
       (try
         (start-responder! ch-in ch-out
                           (fn [message]
@@ -156,3 +156,9 @@
             (rmq/close ch))
           (rmq/close conn))))))
 
+(deftest async->fn-test
+  (let [c (async/chan 1) ;; we need buffered channels for external services
+        response-fn (async->fn c)
+        message {:test true}
+        response-channel (response-fn message)]
+    (is (= [response-channel message] (async/<!! c)))))

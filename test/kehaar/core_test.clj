@@ -47,12 +47,6 @@
           c (is false "Bad payload should put nothing on channel.")
           (async/timeout 100) (is true))))))
 
-(deftest async->fn-test
-  (let [c (async/chan 1) ;; we need buffered channels for external services
-        response-fn (async->fn c)
-        message {:test true}
-        response-channel (response-fn message)]
-    (is (= [response-channel message] (async/<!! c)))))
 
 (deftest responder-fn-test
   (testing "can return a regular value"
