@@ -1,29 +1,11 @@
 (ns kehaar.core
   (:require [clojure.core.async :as async]
             [clojure.edn :as edn]
-            [langohr.core :as rmq]
             [langohr.basic :as lb]
             [langohr.consumers :as lc]
             [langohr.queue :as lq]
             [clojure.tools.logging :as log]
             [kehaar.async :refer [bounded>!!]]))
-
-(defn connect-to-broker
-  "Attempts to connect to RabbitMQ broker `tries` times.
-  Returns connection if successful, nil if not."
-  ([config] (connect-to-broker config 5))
-  ([config tries]
-   (loop [attempt 1]
-     (if-let [connection (try
-                           (rmq/connect config)
-                           (catch Throwable t
-                             (log/warn "RabbitMQ not available:" (.getMessage t) "attempt:" attempt)
-                             nil))]
-       (do (log/info "RabbitMQ connected.")
-           connection)
-       (when (< attempt tries)
-         (Thread/sleep (* attempt 1000))
-         (recur (inc attempt)))))))
 
 (defn read-payload
   "Unsafely read a byte array as edn."

@@ -8,7 +8,8 @@
             [langohr.basic :as lb]
             [langohr.consumers :as lc]
             [clojure.tools.logging :as log]
-            [kehaar.async :refer [bounded<!! bounded>!!]]))
+            [kehaar.async :refer [bounded<!! bounded>!!]]
+            [kehaar.rabbitmq :refer [connect-to-broker]]))
 
 (deftest ^:rabbit-mq connect-to-broker-test
   (testing "connects to running broker and returns connection"
