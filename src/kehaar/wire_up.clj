@@ -112,3 +112,13 @@
               (async/close! chan)
               (swap! pending-calls dissoc correlation-id))))))
      ch)))
+
+(defn async->fn
+  "Returns a fn that takes a message, creates a core.async channel for
+  the response for that message, and puts [response-channel, message]
+  on the channel given. Returns the response-channel."
+  [channel]
+  (fn [message]
+    (let [response-channel (async/chan 1)]
+      (async/>!! channel [response-channel message])
+      response-channel)))

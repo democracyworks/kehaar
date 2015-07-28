@@ -13,6 +13,9 @@ low-level interface to connect up Rabbit and core.async. Functions in
 `kehaar.wire-up` use these low-level functions but also will do a lot
 of the low-level RabbitMQ channel and queue management for you.
 
+In most cases, `kehaar.wire-up` should be all you need to set up
+services and events.
+
 ### High-level interface
 
 ```clojure
@@ -25,10 +28,10 @@ Some typical patterns:
   need to declare it first.
 
 ```clojure
-(let [ch (declare-events-exchange conn
-                                  "events"
-                                  "topic"
-                                  (config :topics "events"))]
+(let [ch (wire-up/declare-events-exchange conn
+                                          "events"
+                                          "topic"
+                                          (config :topics "events"))]
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
@@ -37,11 +40,17 @@ Some typical patterns:
   RabbitMQ.
 
 ```clojure
-(let [ch (external-service conn
-                           "service-works.service.process"
-                           process-channel)] ;; a core.async channel
+(let [ch (wire-up/external-service conn
+                                   "service-works.service.process"
+                                   process-channel)] ;; a core.async channel
   ;; later, on exit, close ch
   (rmq/close ch))
+```
+
+Then you can create a function that "calls" that service, like so:
+
+```clojure
+(def process (wire-up/async->fn process-channel))
 ```
 
 * You want to make a query-response service. Send requests to
@@ -49,31 +58,31 @@ Some typical patterns:
 
 
 ```clojure
-(let [ch (incoming-service conn
-                           "service-works.service.process"
-                           (config :queues "service-works.service.process")
-                           in-channel
-                           out-channel)]
+(let [ch (wire-up/incoming-service conn
+                                   "service-works.service.process"
+                                   (config :queues "service-works.service.process")
+                                   in-channel
+                                   out-channel)]
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
 
 Later, you can add a handler to it like this:
 
-```
-(start-responder! in-channel out-channel handler-function)
+```clojure
+(wire-up/start-responder! in-channel out-channel handler-function)
 ```
 
 * You want to listen for events on the events exchange. (First declare
   the exchange above, only do that once.)
 
 ```clojure
-(let [ch (incoming-events-channel conn
-                                  "my-service.events.create-something"
-                                  (config :queues "my-service.events.create-something")
-                                  "create-something"
-                                  create-something-events ;; events core.async channel
-                                  100)] ;; timeout
+(let [ch (wire-up/incoming-events-channel conn
+                                          "my-service.events.create-something"
+                                          (config :queues "my-service.events.create-something")
+                                          "create-something"
+                                          create-something-events ;; events core.async channel
+                                          100)] ;; timeout
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
@@ -81,17 +90,17 @@ Later, you can add a handler to it like this:
 Later, you can add an event handler like this:
 
 ```
-(start-event-handler! in-channel handler-function)
+(wire-up/start-event-handler! in-channel handler-function)
 ```
 
 * You want to send events on the events exchange. (First declare the
   exchange above, only do that once.)
 
 ```clojure
-(let [ch (outgoing-events-channel conn
-                                  "events"
-                                  "create-something"
-                                  create-something-events)] ;; events core.async channel
+(let [ch (wire-up/outgoing-events-channel conn
+                                          "events"
+                                          "create-something"
+                                          create-something-events)] ;; events core.async channel
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
