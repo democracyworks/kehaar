@@ -10,8 +10,8 @@
    (loop [attempt 1]
      (if-let [connection (try
                            (connect config)
-                           (catch Throwable t
-                             (log/warn "RabbitMQ not available:" (.getMessage t) "attempt:" attempt)
+                           (catch java.net.ConnectException ce
+                             (log/warn "RabbitMQ not available:" (.getMessage ce) "attempt:" attempt)
                              nil))]
        (do (log/info "RabbitMQ connected.")
            connection)
