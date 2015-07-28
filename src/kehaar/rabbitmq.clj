@@ -2,10 +2,10 @@
   (:require [langohr.core :refer [connect]]
             [clojure.tools.logging :as log]))
 
-(defn connect-to-broker
+(defn connect-with-retries
   "Attempts to connect to RabbitMQ broker `tries` times.
   Returns connection if successful, nil if not."
-  ([config] (connect-to-broker config 5))
+  ([config] (connect-with-retries config 5))
   ([config tries]
    (loop [attempt 1]
      (if-let [connection (try
