@@ -53,6 +53,12 @@ Then you can create a function that "calls" that service, like so:
 (def process (wire-up/async->fn process-channel))
 ```
 
+The returned function, when called, will return a core.async channel
+that will eventually contain the result. If you're chaining up
+services, this channel can be returned from a handler as well, letting
+you chain async calls. The returned function takes a single argument,
+which must be some edenizable value (including `nil`).
+
 * You want to make a query-response service. Send requests to
   in-channel and get responses on out-channel (core.async channels).
 
@@ -72,6 +78,24 @@ Later, you can add a handler to it like this:
 ```clojure
 (wire-up/start-responder! in-channel out-channel handler-function)
 ```
+
+Some notes:
+
+`handler-function` should be a function of a single argument. It
+accepts messages from the queue, which had been serialized and
+deserialized as EDN. So expect any kind of serializable value,
+including `nil`.
+
+You can call `wire-up/start-responder!` multiple times to start
+different threads running the same handler.
+
+Incoming messages are nacked if the thread is taking too long to
+process the messages. This allows different instances of the service
+to process those messages.
+
+`in-channel` should be an unbuffered channel. `out-channel` should
+have a large buffer to get messages out to RabbitMQ as soon as
+possible.
 
 * You want to listen for events on the events exchange. (First declare
   the exchange above, only do that once.)
@@ -93,6 +117,24 @@ Later, you can add an event handler like this:
 (wire-up/start-event-handler! in-channel handler-function)
 ```
 
+Some notes:
+
+`in-channel` should be unbuffered.
+
+`handler-function` is a function of exactly one argument, which is the
+message that was passed down the rabbit hole. It's serialized on the
+way to a ByteString using EDN, so expect some data that can be
+edenized. The return can be any edenizable value (including `nil`) OR
+a core.async channel that will include the result (also must be
+edenizable). That second option lets you maintain asynchrony because
+other services using kehaar are doing the same.
+
+Each call to `wire-up/start-event-handler!` creates a new thread.
+
+Incoming messages are nacked if the thread is taking too long to
+process the messages. This allows different instances of the service
+to process those messages.
+
 * You want to send events on the events exchange. (First declare the
   exchange above, only do that once.)
 
@@ -104,6 +146,8 @@ Later, you can add an event handler like this:
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
+
+The event messages you send on the channel should be edenizable.
 
 ### Low-level interface
 
@@ -159,6 +203,21 @@ edn and placed on the "updates" queue. Each message should have
 All messages sent to the `outgoing-messages` channel will ebe ncoded
 as edn and placed on the queue specified in the `:reply-to` key in the
 metadata. Each message should have `:message` and `:metadata`.
+
+## Backpressure
+
+Kehaar implements backpressure now using RabbitMQ nacks and
+requeuing. Messages that don't parse will be nacked without requeing.
+
+Here's the thing to know: each `wire-up/start-responder!` and
+`wire-up/start-event-handler!` starts a new thread. When the
+in-channel of either of those is full (meaning it takes more than
+100ms to add to the core.async channel), the incoming message is
+nacked and requeued.
+
+You can start multiple threads with the same handler by calling
+`wire-up/start-responder!` and `wire-up/start-event-handler!` multiple
+times.
 
 ## License
 
