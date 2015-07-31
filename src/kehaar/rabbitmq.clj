@@ -5,6 +5,7 @@
 (defn connect-with-retries
   "Attempts to connect to RabbitMQ broker `tries` times.
   Returns connection if successful."
+  ([] (connect-with-retries {}))
   ([config] (connect-with-retries config 5))
   ([config tries]
    (loop [attempt 1]
