@@ -1,5 +1,43 @@
 # Change Log
 
+## Changes between Kehaar 0.4.0 and 0.5.0
+
+### kehaar.rabbitmq/connect-with-retries
+
+Added `kehaar.rabbitmq/connect-with-retries` function to make connecting to
+RabbitMQ brokers more robust.
+
+### Backpressure
+
+**This is a major change**. It renames and reworks the existing
+functionality.
+
+The main motivation for this was to make kehaar more robust when faced
+with errors. EDN parse errors would cause the entire handler to
+crash. And kehaar would read as many messages as it could at a time,
+potentially overloading the server with no recourse for backpressure.
+
+This rewrite solves those two problems while renaming and reworking
+the abstractions. The main difference is that the functions which pump
+messages to and from rabbit <=> core.async now pass the payload and
+metadata. This simplified the code a lot since we often need the
+metadata.
+
+Event handlers and service responders now run in their own
+threads. call start-event-handler! and start-responder! in server
+initialization to start those. The return value of event handlers is
+ignored, but responders can return any value or a channel which will
+contain the value. This lets things remain asynchronous.
+
+**This is a breaking change.** Many "lower-level" function in `core`
+are very different. Other functions have been moved, renamed, and
+their arguments are different.
+
+### Example project
+
+An example project has been added at /example, to demonstrate how to
+use the various functions in the `wire-up` namespace.
+
 ## Changes between Kehaar 0.3.0 and 0.4.0
 
 ### kehaar.core/ch->response-fn
