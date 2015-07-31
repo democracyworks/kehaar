@@ -6,7 +6,7 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 ## Usage
 
-Add `[democracyworks/kehaar "0.4.0"]` to your dependencies.
+Add `[democracyworks/kehaar "0.5.0"]` to your dependencies.
 
 There are two ways to use Kehaar. Functions in `kehaar.core` are a
 low-level interface to connect up Rabbit and core.async. Functions in
@@ -17,6 +17,8 @@ In most cases, `kehaar.wire-up` should be all you need to set up
 services and events.
 
 ### High-level interface
+
+See the example project for more detail.
 
 ```clojure
 (require '[kehaar.wire-up :as wire-up])
@@ -31,7 +33,7 @@ Some typical patterns:
 (let [ch (wire-up/declare-events-exchange conn
                                           "events"
                                           "topic"
-                                          (config :topics "events"))]
+                                          (config [:topics "events"]))]
   ;; later, on exit, close ch
   (rmq/close ch))
 ```
@@ -60,7 +62,7 @@ Then you can create a function that "calls" that service, like so:
 ```clojure
 (let [ch (wire-up/incoming-service conn
                                    "service-works.service.process"
-                                   (config :queues "service-works.service.process")
+                                   (config [:queues "service-works.service.process"])
                                    in-channel
                                    out-channel)]
   ;; later, on exit, close ch
@@ -79,7 +81,8 @@ Later, you can add a handler to it like this:
 ```clojure
 (let [ch (wire-up/incoming-events-channel conn
                                           "my-service.events.create-something"
-                                          (config :queues "my-service.events.create-something")
+                                          (config [:queues "my-service.events.create-something"])
+                                          "events"
                                           "create-something"
                                           create-something-events ;; events core.async channel
                                           100)] ;; timeout
@@ -162,17 +165,18 @@ metadata. Each message should have `:message` and `:metadata`.
 
 ### Connecting to RabbitMQ
 
-While it is perfectly acceptable to connect to RabbitMQ using langohr directly,
-there is also `kehaar.rabbitmq/connect-with-retries`. This fn takes a RabbitMQ
-config map just like `langohr.core/connect` or that and a max-retry count
-(which defaults to 5 if ommitted).
+While it is perfectly acceptable to connect to RabbitMQ using langohr
+directly, there is also `kehaar.rabbitmq/connect-with-retries`. This
+fn takes a RabbitMQ config map just like `langohr.core/connect` and,
+optionally, a max-retry count (which defaults to 5 if ommitted).
 
-It then attempts to connect to the RabbitMQ broker up to the max-retry count
-with backoff of `(* attempts 1000)` milliseconds.
+It then attempts to connect to the RabbitMQ broker up to the max-retry
+count with backoff of `(* attempts 1000)` milliseconds.
 
-If it fails to connect to the broker after hitting the maximum number of retries,
-it will re-throw the final `java.net.ConnectException` from `langohr.core/connect`.
-If it succeeds, it will return the connection just like `langohr.core/connect`.
+If it fails to connect to the broker after hitting the maximum number
+of retries, it will re-throw the final `java.net.ConnectException`
+from `langohr.core/connect`.  If it succeeds, it will return the
+connection just like `langohr.core/connect`.
 
 ## License
 
