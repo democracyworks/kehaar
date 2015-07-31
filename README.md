@@ -160,6 +160,20 @@ All messages sent to the `outgoing-messages` channel will ebe ncoded
 as edn and placed on the queue specified in the `:reply-to` key in the
 metadata. Each message should have `:message` and `:metadata`.
 
+### Connecting to RabbitMQ
+
+While it is perfectly acceptable to connect to RabbitMQ using langohr directly,
+there is also `kehaar.rabbitmq/connect-with-retries`. This fn takes a RabbitMQ
+config map just like `langohr.core/connect` or that and a max-retry count
+(which defaults to 5 if ommitted).
+
+It then attempts to connect to the RabbitMQ broker up to the max-retry count
+with backoff of `(* attempts 1000)` milliseconds.
+
+If it fails to connect to the broker after hitting the maximum number of retries,
+it will re-throw the final `java.net.ConnectException` from `langohr.core/connect`.
+If it succeeds, it will return the connection just like `langohr.core/connect`.
+
 ## License
 
 Copyright © 2015 Democracy Works, Inc.

@@ -1,5 +1,10 @@
 # Change Log
 
+## Changes between Kehaar 0.4.0 and HEAD
+
+Added `kehaar.rabbitmq/connect-with-retries` function to make connecting to
+RabbitMQ brokers more robust.
+
 ## Changes between Kehaar 0.3.0 and 0.4.0
 
 ### kehaar.core/ch->response-fn

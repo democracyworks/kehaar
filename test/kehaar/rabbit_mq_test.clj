@@ -8,7 +8,16 @@
             [langohr.basic :as lb]
             [langohr.consumers :as lc]
             [clojure.tools.logging :as log]
-            [kehaar.async :refer [bounded<!! bounded>!!]]))
+            [kehaar.async :refer [bounded<!! bounded>!!]]
+            [kehaar.rabbitmq :refer [connect-with-retries]]))
+
+(deftest ^:rabbit-mq connect-with-retries-test
+  (testing "connects to running broker and returns connection"
+    (is (= (class (connect-with-retries {}))
+           com.novemberain.langohr.Connection)))
+  (testing "throws exception when broker unavailable"
+    (is (thrown? java.net.ConnectException
+                 (connect-with-retries {:host "localhost" :port 65535} 1)))))
 
 (deftest ^:rabbit-mq async=>rabbit-rabbit=>async-test
   (let [conn (rmq/connect)
