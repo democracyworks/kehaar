@@ -15,8 +15,9 @@
   (testing "connects to running broker and returns connection"
     (is (= (class (connect-with-retries {}))
            com.novemberain.langohr.Connection)))
-  (testing "returns nil when broker unavailable"
-    (is (nil? (connect-with-retries {:host "localhost" :port 65535} 1)))))
+  (testing "throws exception when broker unavailable"
+    (is (thrown? java.net.ConnectException
+                 (connect-with-retries {:host "localhost" :port 65535} 1)))))
 
 (deftest ^:rabbit-mq async=>rabbit-rabbit=>async-test
   (let [conn (rmq/connect)

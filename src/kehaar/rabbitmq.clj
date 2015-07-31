@@ -4,7 +4,7 @@
 
 (defn connect-with-retries
   "Attempts to connect to RabbitMQ broker `tries` times.
-  Returns connection if successful, nil if not."
+  Returns connection if successful."
   ([config] (connect-with-retries config 5))
   ([config tries]
    (loop [attempt 1]
@@ -12,9 +12,10 @@
                            (connect config)
                            (catch java.net.ConnectException ce
                              (log/warn "RabbitMQ not available:" (.getMessage ce) "attempt:" attempt)
-                             nil))]
+                             (when (>= attempt tries)
+                               (throw ce))))]
        (do (log/info "RabbitMQ connected.")
            connection)
-       (when (< attempt tries)
+       (do
          (Thread/sleep (* attempt 1000))
          (recur (inc attempt)))))))

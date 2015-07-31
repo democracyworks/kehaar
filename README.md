@@ -171,8 +171,8 @@ It then attempts to connect to the RabbitMQ broker up to the max-retry count
 with backoff of `(* attempts 1000)` milliseconds.
 
 If it fails to connect to the broker after hitting the maximum number of retries,
-it will return nil. If it succeeds, it will return the connection just like
-`langohr.core/connect`.
+it will re-throw the final `java.net.ConnectException` from `langohr.core/connect`.
+If it succeeds, it will return the connection just like `langohr.core/connect`.
 
 ## License
 
