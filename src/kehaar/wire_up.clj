@@ -75,7 +75,9 @@
   that channel."
   ([connection queue-name channel]
    (external-service connection ""
-                     queue-name {:exclusive false :auto-delete true}
+                     queue-name {:exclusive false
+                                 :durable true 
+                                 :auto-delete false}
                      1000 channel))
   ([connection exchange queue-name queue-options timeout channel]
    (let [ch (langohr.channel/open connection)]
