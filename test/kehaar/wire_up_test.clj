@@ -138,9 +138,12 @@
           ch-in  (async/chan 1000)
           ch-out  (async/chan 1000)
           test-chan (async/chan 1)
-          chs [(incoming-service conn "this.is.my.service" {}
+          chs [(incoming-service conn "this.is.my.service"
+                                 {:exclusive false :durable false :auto-delete true}
                                  ch-in ch-out)
-               (external-service conn "this.is.my.service" ch-ext)]
+               (external-service conn "" "this.is.my.service"
+                                 {:exclusive false :durable false :auto-delete true}
+                                 1000 ch-ext)]
           f (async->fn ch-ext)]
       (try
         (start-responder! ch-in ch-out
