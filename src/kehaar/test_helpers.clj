@@ -7,7 +7,7 @@
    (fn [message]
      (let [request-result (async/alt!! [in-channel {:message message}] ::sent
                                        (async/timeout timeout) ::timeout)]
-       (cond request-result
-             ::sent (:message (async/alt!! out-channel ([v] v)
-                                           (async/timeout timeout) ::timeout))
-             ::timeout ::timeout)))))
+       (case request-result
+         ::sent (:message (async/alt!! out-channel ([v] v)
+                                       (async/timeout timeout) ::timeout))
+         ::timeout ::timeout)))))
