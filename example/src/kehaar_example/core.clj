@@ -61,7 +61,8 @@
         ;; 100ms).
         event-listener-ch (wire-up/incoming-events-channel conn
                                                            "fibs-incoming"
-                                                           {:auto-delete true}
+                                                           {:auto-delete false
+                                                            :durable true}
                                                            "events"
                                                            "fib-event"
                                                            incoming-fib-events
@@ -79,7 +80,8 @@
         ;; core.async channels using the "calculate-fib" queue.
         incoming-service-ch (wire-up/incoming-service conn
                                                       "calculate-fib"
-                                                      {:auto-delete true}
+                                                      {:auto-delete false
+                                                       :durable true}
                                                       incoming-fib-requests
                                                       outgoing-fib-responses)
 
