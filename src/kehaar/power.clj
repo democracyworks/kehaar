@@ -20,17 +20,20 @@
         (log/error semantic-error (str "Semantic error in " queue-name))
         {:status :error
          :error {:type :semantic
-                 :message (.getMessage semantic-error)}})
+                 :message (.getMessage semantic-error)
+                 :request message}})
       (catch clojure.lang.ExceptionInfo validation-error
         (log/error validation-error (str "Validation error in " queue-name))
         {:status :error
          :error {:type :validation
-                 :message (.getMessage validation-error)}})
+                 :message (.getMessage validation-error)
+                 :request message}})
       (catch Throwable t
         (log/error t (str "Error in " queue-name))
         {:status :error
          :error {:type :server
-                 :message (str "Unknown server error: " (.getMessage t))}}))))
+                 :message (str "Unknown server error: " (.getMessage t))
+                 :request message}}))))
 
 
 (defn init-events-exchange [connection]
