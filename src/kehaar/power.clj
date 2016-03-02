@@ -12,25 +12,25 @@
     (rmq/close resource)))
 
 (defn handle-errors
-  [handler]
+  [queue-name handler]
   (fn [message]
     (try
       (handler message)
       (catch IllegalArgumentException semantic-error
-        (log/error semantic-error "Semantic error in electorate-works")
+        (log/error semantic-error (str "Semantic error in " queue-name))
         {:status :error
          :error {:type :semantic
                  :message (.getMessage semantic-error)}})
       (catch clojure.lang.ExceptionInfo validation-error
-        (log/error validation-error "Validation error in electorate-works")
+        (log/error validation-error (str "Validation error in " queue-name))
         {:status :error
          :error {:type :validation
                  :message (.getMessage validation-error)}})
       (catch Throwable t
-        (log/error t "Error in electorate-works")
+        (log/error t (str "Error in " queue-name))
         {:status :error
          :error {:type :server
-                 :server (str "Unknown server error: " (.getMessage t))}}))))
+                 :message (str "Unknown server error: " (.getMessage t))}}))))
 
 
 (defn init-events-exchange [connection]
@@ -136,7 +136,7 @@
 
 (defn disconnect-rabbit []
   (locking lock
-    (println "Disconnecting rabbit if already connected.")
+    (log/info "Disconnecting rabbit if already connected.")
     (doseq [tear-down @tear-downers]
       (tear-down))
     (reset! tear-downers [])))
@@ -144,19 +144,19 @@
 (defn connect-rabbit [max-retries config]
   (locking lock
     (disconnect-rabbit)
-    (println "Connecting Rabbit.")
+    (log/info "Connecting Rabbit.")
     (let [conn (kehaar.rabbitmq/connect-with-retries config max-retries)
           exchange-tear-down (init-events-exchange conn)]
       (doseq [ns (all-ns)
               var (vals (ns-interns (the-ns ns)))]
         (when-let [init (::init (meta var))]
-          (println "Initializing " var)
+          (log/info "Initializing " var)
           (init-and-save init conn)))
       (swap! tear-downers conj
              exchange-tear-down
              (fn tear-down []
                (rabbit-close conn))))
-    (println "Done connecting Rabbit.")))
+    (log/info "Done connecting Rabbit.")))
 
 (defmacro def-service-handler
   "Define a service handler. The handler can be called as a
@@ -171,7 +171,7 @@
   (assert (= 1 (count message-binding)))
   (assert (string? queue-name))
   `(do
-     (let [f# (handle-errors (fn ~message-binding ~@body))]
+     (let [f# (handle-errors ~queue-name (fn ~message-binding ~@body))]
        (defn ~handler-name
          ~doc-string
          [~'message]
@@ -243,7 +243,7 @@
   (assert (string? queue-name))
   (assert (string? topic-name))
   `(do
-     (let [f# (handle-errors (fn ~message-binding ~@body))]
+     (let [f# (handle-errors ~queue-name (fn ~message-binding ~@body))]
        (defn ~handler-name
          ~doc-string
          [~'message]
