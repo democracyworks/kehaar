@@ -44,11 +44,9 @@
     (fn tear-down []
       (rabbit-close ch))))
 
-;; We want to lock all operations to the following atoms. The state
-;; needs to remain synchronized (implying refs), but we're also doing
-;; IO (setting up / tearing down rabbit connections) so let's just
-;; lock. Typically it's only done when the server is starting or
-;; shutting down.
+;; We want to lock all connect/disconnect operations. Stateful/IO
+;; operations is classic mutex territory so let's just lock. Typically
+;; it's only done when the server is starting or shutting down.
 (defonce lock (Object.))
 
 (defonce tear-downers (atom []))
