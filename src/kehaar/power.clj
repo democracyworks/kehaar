@@ -220,8 +220,8 @@
          ;; using a defn will set up all the nice metadata like args.
          (defn ~fn-name
            ~doc-string
-           ~message-binding
-           (f# ~(first message-binding))))
+           [`'message]
+           (f# `'message)))
        (let [v# (var ~fn-name)
              init# (partial connect-external-service ~cname ~queue-name)]
          (alter-meta! v# assoc

@@ -46,8 +46,7 @@
 (deftest defonce-external-service-basic
   (testing "the basic defonce-external-service call"
     (defonce-external-service some-service "some-queue"
-      "something I can call"
-      [arg])))
+      "something I can call")))
 
 (deftest def-incoming-event-handler-basic
   (testing "the basic def-incoming-event-handler definition"
