@@ -3,16 +3,16 @@
             [clojure.test :refer :all]
             [clojure.core.async :as async]))
 
-(deftest basic-def-service-handler-call
+(deftest basic-defn-service-handler-call
   (testing "the basic, minimum def-service-handler"
-    (def-service-handler testing1 "some-queue.name"
+    (defn-service-handler testing1 "some-queue.name"
       "A test handler"
       [message]
       nil)))
 
-(deftest def-service-handler-can-be-called-like-function
+(deftest defn-service-handler-can-be-called-like-function
   (testing "you can call a def-service-handler like a function"
-    (def-service-handler like-fn "random-queue"
+    (defn-service-handler like-fn "random-queue"
       "Just a basic tester."
       [message]
       message)
@@ -20,7 +20,7 @@
     (is (= 1 (like-fn 1)))
     (is (= 2 (like-fn 2))))
   (testing "you can use a destructuring form as argument"
-    (def-service-handler like-fn "random-queue"
+    (defn-service-handler like-fn "random-queue"
       "Just a basic tester."
       [{:keys [hello]}]
       hello)
@@ -43,14 +43,14 @@
       (let [c2 test-events]
         (is (identical? c1 c2))))))
 
-(deftest defonce-external-service-basic
+(deftest defn-external-service-basic
   (testing "the basic defonce-external-service call"
-    (defonce-external-service some-service "some-queue"
+    (defn-external-service some-service "some-queue"
       "something I can call")))
 
-(deftest def-incoming-event-handler-basic
+(deftest defn-incoming-event-handler-basic
   (testing "the basic def-incoming-event-handler definition"
-    (def-incoming-event-handler user-create "user.create" "power-test.queue"
+    (defn-incoming-event-handler user-create "user.create" "power-test.queue"
       "Respond to a user-create event."
       [message]
       (println "Got event:" (pr-str message)))))

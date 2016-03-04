@@ -35,7 +35,6 @@
                  :message (str "Unknown server error: " (.getMessage t))
                  :request message}}))))
 
-
 (defn init-events-exchange [connection]
   (let [ch (wire-up/declare-events-exchange connection
                                             "events"
@@ -159,7 +158,7 @@
                (rabbit-close conn))))
     (log/info "Done connecting Rabbit.")))
 
-(defmacro def-service-handler
+(defmacro defn-service-handler
   "Define a service handler. The handler can be called as a
   function. If/when rabbitmq is connected, it also will be connected
   to the queue (created if needed). It will be disconnected when
@@ -203,16 +202,13 @@
                     ::topic-name ~topic-name)
        v#)))
 
-(defmacro defonce-external-service
+(defmacro defn-external-service
   "Define a function that calls an external service. The function will
   return a core.async channel with the response."
-  [fn-name queue-name doc-string
-   message-binding]
+  [fn-name queue-name doc-string]
   (assert (symbol? fn-name))
   (assert (string? doc-string))
   (assert (string? queue-name))
-  (assert (vector? message-binding))
-  (assert (= 1 (count message-binding)))
   (let [cname (symbol (str fn-name "__channel"))]
     `(do
        (defonce ~cname (async/chan 1000))
@@ -220,17 +216,18 @@
          ;; using a defn will set up all the nice metadata like args.
          (defn ~fn-name
            ~doc-string
-           [`'message]
-           (f# `'message)))
+           [message#]
+           (f# message#)))
        (let [v# (var ~fn-name)
              init# (partial connect-external-service ~cname ~queue-name)]
          (alter-meta! v# assoc
                       ::init init#
                       ::type :external-service
-                      ::queue-name ~queue-name)
+                      ::queue-name ~queue-name
+                      :arglists '([message]))
          v#))))
 
-(defmacro def-incoming-event-handler
+(defmacro defn-incoming-event-handler
   "Define a handler that waits for and responds to incoming events for
   a given topic."
   [handler-name topic-name queue-name
@@ -247,8 +244,8 @@
      (let [f# (handle-errors ~queue-name (fn ~message-binding ~@body))]
        (defn ~handler-name
          ~doc-string
-         [~'message]
-         (f# ~'message)))
+         [message#]
+         (f# message#)))
      (let [v# (var ~handler-name)
            ;; use the var to allow redefinition
            init# (partial connect-incoming-event-handler v# ~queue-name ~topic-name)]
