@@ -160,8 +160,31 @@
           (rmq/close conn))))))
 
 (deftest async->fn-test
-  (let [c (async/chan 1) ;; we need buffered channels for external services
-        response-fn (async->fn c)
-        message {:test true}
-        response-channel (response-fn message)]
-    (is (= [response-channel message] (async/<!! c)))))
+  (testing "async->fn structure"
+    (let [c (async/chan 1) ;; we need buffered channels for external services
+          response-fn (async->fn c)
+          message {:test true}
+          response-channel (response-fn message)]
+      (is (= [response-channel message] (async/<!! c)))))
+  (testing "response is nil when no response to service past timeout"
+    (let [timeout   2000
+          conn      (rmq/connect)
+          ch-async  (async/chan 1000)
+          ch-rabbit (external-service
+                     conn "" "this.is.my.service"
+                     {:exclusive false :durable false :auto-delete true}
+                     timeout ch-async)
+          f         (async->fn ch-async)]
+      (try
+        (let [start    (System/currentTimeMillis)
+              response (async/<!! (f {}))
+              stop     (System/currentTimeMillis)
+              duration (- stop start)]
+          ;; response channel should return nil when timeout occurs
+          (is (= nil (async/<!! (f {}))))
+          ;; test that it took longer than the timeout
+          (is (>= duration timeout)))
+        (finally
+          (async/close! ch-async)
+          (rmq/close ch-rabbit)
+          (rmq/close conn))))))
