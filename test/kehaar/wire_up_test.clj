@@ -8,16 +8,17 @@
             [langohr.basic :as lb]
             [langohr.consumers :as lc]
             [clojure.tools.logging :as log]
-            [kehaar.async :refer [bounded<!! bounded>!!]]))
+            [kehaar.async :refer [bounded<!! bounded>!!]]
+            [kehaar.test-config :refer [rmq-config]]))
 
 (deftest ^:rabbit-mq events-test
   (testing "we can publish events and receive them, going through rabbit"
-    (let [conn   (rmq/connect)
+    (let [conn   (rmq/connect rmq-config)
           ch-out (async/chan 1000)
           ch-in  (async/chan 1000)
-          chs [(declare-events-exchange conn "events" "topic" {})
-               (incoming-events-channel conn "test-in" {} "events" "test-event" ch-in 1000)
-               (outgoing-events-channel conn "events" "test-event" ch-out)]]
+          chs [(declare-events-exchange conn "test-events" "topic" {})
+               (incoming-events-channel conn "test-in" {} "test-events" "test-event" ch-in 1000)
+               (outgoing-events-channel conn "test-events" "test-event" ch-out)]]
       (try
         (dotimes [x 1000]
           (let [x (java.util.UUID/randomUUID)]
@@ -32,12 +33,12 @@
 
   (testing "we can publish a bunch of events and then receive them
   later, going through rabbit"
-    (let [conn   (rmq/connect)
+    (let [conn   (rmq/connect rmq-config)
           ch-out (async/chan 1000)
           ch-in  (async/chan 1000)
-          chs [(declare-events-exchange conn "events" "topic" {})
-               (incoming-events-channel conn "test-in" {} "events" "test-event" ch-in 1000)
-               (outgoing-events-channel conn "events" "test-event" ch-out)]]
+          chs [(declare-events-exchange conn "test-events" "topic" {})
+               (incoming-events-channel conn "test-in" {} "test-events" "test-event" ch-in 1000)
+               (outgoing-events-channel conn "test-events" "test-event" ch-out)]]
       (try
         (let [messages (for [x (range 1000)
                              :let [x (java.util.UUID/randomUUID)]]
@@ -54,13 +55,13 @@
           (rmq/close conn)))))
 
   (testing "we can set up a handler function on incoming events"
-    (let [conn   (rmq/connect)
+    (let [conn   (rmq/connect rmq-config)
           ch-out (async/chan 1000)
           ch-in  (async/chan 1000)
           test-chan (async/chan 1)
-          chs [(declare-events-exchange conn "events" "topic" {})
-               (incoming-events-channel conn "test-in" {} "events" "test-event" ch-in 1000)
-               (outgoing-events-channel conn "events" "test-event" ch-out)]]
+          chs [(declare-events-exchange conn "test-events" "topic" {})
+               (incoming-events-channel conn "test-in" {} "test-events" "test-event" ch-in 1000)
+               (outgoing-events-channel conn "test-events" "test-event" ch-out)]]
       (try
         (start-event-handler! ch-in (fn [message]
                                       (bounded>!! test-chan :hello 100)))
@@ -133,7 +134,7 @@
 (deftest ^:rabbit-mq service-test
   (testing "create an incoming service and an outgoing services that
   calls it, roundtripping through rabbit."
-    (let [conn   (rmq/connect)
+    (let [conn   (rmq/connect rmq-config)
           ch-ext (async/chan 1000)
           ch-in  (async/chan 1000)
           ch-out  (async/chan 1000)
@@ -168,7 +169,7 @@
       (is (= [response-channel message] (async/<!! c)))))
   (testing "response is nil when no response to service past timeout"
     (let [timeout   2000
-          conn      (rmq/connect)
+          conn      (rmq/connect rmq-config)
           ch-async  (async/chan 1000)
           ch-rabbit (external-service
                      conn "" "this.is.my.service"
