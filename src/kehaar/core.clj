@@ -17,6 +17,8 @@
 (defn channel-handler
   "Returns a RabbitMQ message handler function which puts each
   incoming message on `channel`."
+  ([channel exchange timeout]
+   (channel-handler channel exchange timeout false))
   ([channel exchange timeout close-channel?]
    (fn [ch {:keys [delivery-tag] :as metadata} ^bytes payload]
      (try
