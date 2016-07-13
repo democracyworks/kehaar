@@ -21,9 +21,16 @@
    (fn [ch {:keys [delivery-tag] :as metadata} ^bytes payload]
      (try
        (let [message (read-payload payload)]
-         (if (nil? message)
+         (cond
+           (nil? message)
            ;; don't requeue nil, it's invalid
            [:nack delivery-tag false]
+
+           (= ::stop)
+           ;; ack it, but do nothing with it
+           [:ack delivery-tag]
+
+           :else
            (if (bounded>!! channel {:message  message
                                     :metadata metadata} timeout)
              ;; successfully put, ack now
@@ -139,4 +146,41 @@
         (async/>!! out-channel {:message return
                                 :metadata metadata})))))
 
+(defn streaming-responder-fn
+  [connection out-channel f threshold]
+  (fn [{:keys [message metadata]}]
+    (let [return (f message)
+          size-or-threshold (count (take threshold return))]
+      (if (= threshold size-or-threshold)
+        ;; big
+        ;; create new queue
+        (let [ch (langohr.channel/open connection)
+              response-queue (langohr.queue/declare-server-named
+                              ch
+                              {:exclusive false
+                               :auto-delete true
+                               :durable true})]
+          ;; put queue name on out-channel
+          (async/>!! out-channel {:message {::response-queue response-queue}
+                                  :metadata metadata})
 
+          ;; publish everything from return onto it
+          ;; maybe on a new thread?
+          (doseq [v return]
+            (lb/publish ch "" response-queue (pr-str v) metadata))
+          (lb/publish ch "" response-queue (pr-str ::stop) metadata))
+
+        ;; small
+        (do
+          ;; put "the results are going to come on this channel message"
+          (async/>!! out-channel {:message {::inline size-or-threshold}
+                                  :metadata metadata})
+          ;; put each return value
+          (doseq [v return]
+            (log/info "putting" v)
+            (async/>!! out-channel {:message v
+                                    :metadata metadata}))
+
+          (log/info "putting stop")
+          (async/>!! out-channel {:message ::stop
+                                  :metadata metadata}))))))

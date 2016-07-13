@@ -56,6 +56,12 @@
    in-channel
    (kehaar.core/responder-fn out-channel f)))
 
+(defn start-streaming-responder!
+  [connection in-channel out-channel f threshold]
+  (kehaar.core/thread-handler
+   in-channel
+   (kehaar.core/streaming-responder-fn connection out-channel f threshold)))
+
 (defn incoming-service
   "Wire up an incoming channel and an outgoing channel. Later, you
   should call `start-responder!` with the same channels and a handler
@@ -113,6 +119,73 @@
             (when-let [chan (get @pending-calls correlation-id)]
               (async/close! chan)
               (swap! pending-calls dissoc correlation-id))))))
+     ch)))
+
+(defn streaming-external-service
+  "Wires up a core.async channel to a RabbitMQ queue that provides
+  responses. Use `async->fn` to create a function that puts to
+  that channel."
+  ([connection queue-name channel]
+   (streaming-external-service connection ""
+                               queue-name {:exclusive false
+                                           :durable true
+                                           :auto-delete false}
+                               1000 channel))
+  ([connection exchange queue-name queue-options timeout channel]
+   (let [ch (langohr.channel/open connection)]
+     (langohr.queue/declare ch queue-name queue-options)
+     (let [response-queue (langohr.queue/declare-server-named
+                           ch
+                           {:exclusive true
+                            :auto-delete true})
+           pending-calls (atom {})
+           <response-channel (async/chan)
+           >request-channel (async/chan 1000)]
+
+       ;; start listening for responses
+       (kehaar.core/rabbit=>async ch response-queue <response-channel {} 1000)
+       (kehaar.core/go-handler
+        [{:keys [message metadata]} <response-channel]
+        (let [correlation-id (:correlation-id metadata)]
+          (cond
+            (= :kehaar.core/stop message)
+            (when-let [return-channel (get @pending-calls correlation-id)]
+              (async/close! return-channel)
+              (swap! pending-calls dissoc correlation-id))
+
+            (and (map? message)
+                 (:kehaar.core/inline message))
+            nil                         ; do nothing
+
+            (and (map? message)
+                 (:kehaar.core/response-queue message))
+            (when-let [return-channel (get @pending-calls correlation-id)]
+              (kehaar.core/rabbit=>async ch (:kehaar.core/response-queue message) return-channel))
+
+            :else
+            (when-let [return-channel (get @pending-calls correlation-id)]
+              (async/>! return-channel message)))))
+
+       ;; bookkeeping for sending the requests
+       (kehaar.core/async=>rabbit >request-channel ch "" queue-name)
+       (kehaar.core/go-handler
+        [[return-channel message] channel]
+        (let [correlation-id (str (java.util.UUID/randomUUID))
+              return-mult (async/mult return-channel)
+              return-tap (async/chan)]
+          (async/tap return-mult return-tap)
+          (swap! pending-calls assoc correlation-id return-channel)
+          (async/>! >request-channel {:message message
+                                      :metadata {:correlation-id correlation-id
+                                                 :reply-to response-queue}})
+          (async/go
+            (let [timeout-ch (async/timeout timeout)]
+              (async/alt!
+                timeout-ch (when-let [chan (get @pending-calls correlation-id)]
+                             (async/close! chan)
+                             (swap! pending-calls dissoc correlation-id))
+                return-tap :okay))
+            (async/untap return-mult return-tap)))))
      ch)))
 
 (defn async->fn
