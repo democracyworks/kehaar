@@ -26,7 +26,7 @@
            ;; don't requeue nil, it's invalid
            [:nack delivery-tag false]
 
-           (= ::stop)
+           (= ::stop message)
            ;; ack it, but do nothing with it
            [:ack delivery-tag]
 
