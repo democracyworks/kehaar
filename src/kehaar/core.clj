@@ -17,7 +17,7 @@
 (defn channel-handler
   "Returns a RabbitMQ message handler function which puts each
   incoming message on `channel`."
-  ([channel exchange timeout]
+  ([channel exchange timeout close-channel?]
    (fn [ch {:keys [delivery-tag] :as metadata} ^bytes payload]
      (try
        (let [message (read-payload payload)]
@@ -27,8 +27,13 @@
            [:nack delivery-tag false]
 
            (= ::stop message)
-           ;; ack it, but do nothing with it
-           [:ack delivery-tag]
+           ;; ack it and close the channel if close-channel?
+           (do
+             (if close-channel?
+               (async/close! channel)
+               (bounded>!! channel {:message message
+                                    :metadata metadata} timeout))
+             [:ack delivery-tag])
 
            :else
            (if (bounded>!! channel {:message  message
@@ -58,10 +63,12 @@
   ([rabbit-channel queue channel]
    (rabbit=>async rabbit-channel queue channel {} 100))
   ([rabbit-channel queue channel options timeout]
+   (rabbit=>async rabbit-channel queue channel options timeout false))
+  ([rabbit-channel queue channel options timeout close-channel?]
    (lc/subscribe rabbit-channel
                  queue
                  (comp (partial ack-or-nack rabbit-channel)
-                       (channel-handler channel "" timeout))
+                       (channel-handler channel "" timeout close-channel?))
                  (merge options {:auto-ack false}))))
 
 (defmacro go-handler
@@ -72,7 +79,7 @@
      (async/go-loop []
        (let [ch-message# (async/<! channel#)]
          (if (nil? ch-message#)
-           (log/warn "Kehaar: go handler is closed.")
+           (log/warn "Kehaar: go handler" '~channel "is closed.")
            (do
              (try
                (let [~binding ch-message#]
@@ -177,10 +184,8 @@
                                   :metadata metadata})
           ;; put each return value
           (doseq [v return]
-            (log/info "putting" v)
             (async/>!! out-channel {:message v
                                     :metadata metadata}))
 
-          (log/info "putting stop")
           (async/>!! out-channel {:message ::stop
                                   :metadata metadata}))))))

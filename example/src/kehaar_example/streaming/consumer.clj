@@ -18,6 +18,10 @@
                              5000
                              outgoing-countdown-requests)]
     (log/info "Consumer making a request!")
-    (let [return-ch (get-countdown 4)]
-      (when-let [v (async/<!! return-ch)]
-        (log/info "Got " v)))))
+    (doseq [n [10 10 3 3 10]]
+      (let [return-ch (get-countdown n)]
+        (loop []
+          (when-let [v (async/<!! return-ch)]
+            (log/info "Got " v)
+            (recur)))))
+    (System/exit 0)))

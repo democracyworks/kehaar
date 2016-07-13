@@ -18,7 +18,7 @@
   (let [connection (kehaar-rabbit/connect-with-retries)]
 
     (wire-up/incoming-service
-     connection "countdown2" {} in-ch out-ch)
+     connection "countdown" {} in-ch out-ch)
 
     (wire-up/start-streaming-responder!
      connection in-ch out-ch countdown 5))
