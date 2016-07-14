@@ -188,7 +188,7 @@
             :else
             (when-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
               (when (get-in @pending-calls [correlation-id :timeout])
-                      (swap! pending-calls update correlation-id dissoc :timeout))
+                (swap! pending-calls update correlation-id dissoc :timeout))
               (async/>! return-channel message)))))
 
        ;; bookkeeping for sending the requests
@@ -206,7 +206,7 @@
 
           (async/go
             (async/<! timeout-ch)
-            (when-let [timeout-ch (get-in @pending-calls [correlation-id :timeout])]
+            (when (get-in @pending-calls [correlation-id :timeout])
               (log/info "Streaming request timed out")
               (async/close! (get-in @pending-calls [correlation-id :return-channel]))
               (swap! pending-calls dissoc correlation-id))))))

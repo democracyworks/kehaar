@@ -79,13 +79,11 @@
   ([rabbit-channel queue channel options timeout]
    (rabbit=>async rabbit-channel queue channel options timeout false))
   ([rabbit-channel queue channel options timeout close-channel?]
-   (let [consumer-tag (str "ctag-" queue "-" (java.util.UUID/randomUUID))]
-     (lc/subscribe rabbit-channel
-                   queue
-                   (comp (partial ack-nack-or-cancel rabbit-channel queue close-channel?)
-                         (channel-handler channel "" timeout close-channel?))
-                   (merge options {:auto-ack false
-                                   :consumer-tag consumer-tag})))))
+   (lc/subscribe rabbit-channel
+                 queue
+                 (comp (partial ack-nack-or-cancel rabbit-channel queue close-channel?)
+                       (channel-handler channel "" timeout close-channel?))
+                 (assoc options :auto-ack false))))
 
 (defmacro go-handler
   "A macro that runs code in `body`, with `binding` bound to each
