@@ -97,7 +97,8 @@
            >request-channel (async/chan 1000)]
 
        ;; start listening for responses
-       (kehaar.core/rabbit=>async ch response-queue <response-channel {} 1000)
+       (kehaar.core/rabbit=>async ch response-queue <response-channel
+                                  {:exclusive true} 1000)
        (kehaar.core/go-handler
         [{:keys [message metadata]} <response-channel]
         (let [correlation-id (:correlation-id metadata)]
@@ -106,14 +107,15 @@
             (swap! pending-calls dissoc correlation-id))))
 
        ;; bookkeeping for sending the requests
-       (kehaar.core/async=>rabbit >request-channel ch "" queue-name)
+       (kehaar.core/async=>rabbit >request-channel ch exchange queue-name)
        (kehaar.core/go-handler
         [[return-channel message] channel]
         (let [correlation-id (str (java.util.UUID/randomUUID))]
           (swap! pending-calls assoc correlation-id return-channel)
           (async/>! >request-channel {:message message
                                       :metadata {:correlation-id correlation-id
-                                                 :reply-to response-queue}})
+                                                 :reply-to response-queue
+                                                 :mandatory true}})
           (async/go
             (async/<! (async/timeout timeout))
             (when-let [chan (get @pending-calls correlation-id)]
@@ -143,7 +145,8 @@
            >request-channel (async/chan 1000)]
 
        ;; start listening for responses
-       (kehaar.core/rabbit=>async ch response-queue <response-channel {} 1000)
+       (kehaar.core/rabbit=>async ch response-queue <response-channel
+                                  {:exclusive true} 1000)
        (kehaar.core/go-handler
         [{:keys [message metadata]} <response-channel]
         (let [correlation-id (:correlation-id metadata)]
@@ -161,28 +164,35 @@
                  (:kehaar.core/response-queue message))
             (when-let [return-channel (get @pending-calls correlation-id)]
               (let [message-channel (async/chan 1 (map :message))]
-                (async/pipe message-channel return-channel true)
                 (kehaar.core/rabbit=>async
                  ch
                  (:kehaar.core/response-queue message)
                  message-channel
-                 {}
+                 {:exclusive true}
                  100
-                 true)))
+                 true)
+                (loop []
+                  (let [msg (async/<! message-channel)]
+                    (if (nil? msg)
+                      (async/close! return-channel)
+                      (if (async/>! return-channel msg)
+                        (recur)
+                        (async/close! message-channel)))))))
 
             :else
             (when-let [return-channel (get @pending-calls correlation-id)]
               (async/>! return-channel message)))))
 
        ;; bookkeeping for sending the requests
-       (kehaar.core/async=>rabbit >request-channel ch "" queue-name)
+       (kehaar.core/async=>rabbit >request-channel ch exchange queue-name)
        (kehaar.core/go-handler
         [[return-channel message] channel]
         (let [correlation-id (str (java.util.UUID/randomUUID))]
           (swap! pending-calls assoc correlation-id return-channel)
           (async/>! >request-channel {:message message
                                       :metadata {:correlation-id correlation-id
-                                                 :reply-to response-queue}}))))
+                                                 :reply-to response-queue
+                                                 :mandatory true}}))))
      ch)))
 
 (defn async->fn

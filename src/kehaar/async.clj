@@ -1,12 +1,12 @@
 (ns kehaar.async
-  (:require [clojure.core.async :as async]))
+  (:require [clojure.core.async :as async]
+            [clojure.tools.logging :as log]))
 
 (defn bounded>!!
-  "Like async/>!, but with a timeout."
+  "Like async/>!!, but with a timeout."
   [channel message timeout]
-  (async/alt!!
-    [[channel message]] true
-    (async/timeout timeout) false))
+  (async/alt!! [[channel message]] ([result] result)
+               (async/timeout timeout) ::timeout))
 
 (defn bounded<!! [channel timeout]
   (async/alt!!

@@ -38,25 +38,38 @@
              [:ack delivery-tag])
 
            :else
-           (if (bounded>!! channel {:message  message
-                                    :metadata metadata} timeout)
-             ;; successfully put, ack now
-             [:ack delivery-tag]
+           (case (bounded>!! channel {:message  message
+                                      :metadata metadata} timeout)
              ;; assume we're busy, requeue timed out
-             [:nack delivery-tag true])))
+             :kehaar.async/timeout
+             [:nack delivery-tag true]
+
+             ;; successfully put, ack now
+             true
+             [:ack delivery-tag]
+
+             ;; channel closed, cancel subscribe
+             false
+             [:cancel])))
+
        (catch Throwable t
          (log/error t "Kehaar: fn->handler-fn: payload did not parse"
                     (String. payload "UTF-8"))
          ;; don't requeue parse errors
          [:nack delivery-tag false])))))
 
-(defn- ack-or-nack [channel [op delivery-tag requeue :as ret]]
+(defn- ack-nack-or-cancel [channel queue close-channel? [op delivery-tag requeue :as ret]]
   (case op
-    :ack  (lb/ack  channel delivery-tag)
-    :nack (lb/nack channel delivery-tag false requeue)
+    :ack    (lb/ack  channel delivery-tag)
+    :nack   (lb/nack channel delivery-tag false requeue)
+    :cancel (when (and close-channel?
+                       (lq/declare-passive channel queue))
+              (try (lq/delete channel queue)
+                   (catch Exception))) ; typically this fails when it's already gone
     ;; otherwise, let's log that
     (log/warn "Kehaar: I don't know how to process this:" ret
-              "I'm designed to process messages containing :ack or :nack.")))
+              "I'm designed to process messages containing :ack, :nack,
+              or :cancel.")))
 
 (defn rabbit=>async
   "Subscribes to the RabbitMQ queue, taking each payload, decoding as
@@ -67,11 +80,13 @@
   ([rabbit-channel queue channel options timeout]
    (rabbit=>async rabbit-channel queue channel options timeout false))
   ([rabbit-channel queue channel options timeout close-channel?]
-   (lc/subscribe rabbit-channel
-                 queue
-                 (comp (partial ack-or-nack rabbit-channel)
-                       (channel-handler channel "" timeout close-channel?))
-                 (merge options {:auto-ack false}))))
+   (let [consumer-tag (str "ctag-" queue "-" (java.util.UUID/randomUUID))]
+     (lc/subscribe rabbit-channel
+                   queue
+                   (comp (partial ack-nack-or-cancel rabbit-channel queue close-channel?)
+                         (channel-handler channel "" timeout close-channel?))
+                   (merge options {:auto-ack false
+                                   :consumer-tag consumer-tag})))))
 
 (defmacro go-handler
   "A macro that runs code in `body`, with `binding` bound to each
@@ -87,7 +102,7 @@
                (let [~binding ch-message#]
                  ~@body)
                (catch Throwable t#
-                 (log/error t# "Kehaar: caught an exception in go-handler")))
+                 (log/error t# "Kehaar: caught an exception in go-handler:" '~channel)))
              (recur)))))))
 
 (defn async=>rabbit
@@ -102,7 +117,8 @@
    (async=>rabbit channel rabbit-channel "" queue))
   ([channel rabbit-channel exchange queue]
    (go-handler [{:keys [message metadata]} channel]
-               (lb/publish rabbit-channel exchange queue (pr-str message) metadata))))
+               (lb/publish rabbit-channel exchange queue (pr-str message)
+                           metadata))))
 
 (defn async=>rabbit-with-reply-to
   "Forward all messages on channel to the RabbitMQ queue specified in
@@ -118,7 +134,8 @@
   ([channel rabbit-channel exchange]
    (go-handler [{:keys [message metadata]} channel]
     (if-let [reply-to (:reply-to metadata)]
-      (lb/publish rabbit-channel exchange (:reply-to metadata) (pr-str message) metadata)
+      (lb/publish rabbit-channel exchange reply-to (pr-str message)
+                  (assoc metadata :mandatory true))
       (log/warn "Kehaar: No reply-to in metadata."
                 (pr-str message)
                 (pr-str metadata))))))
@@ -164,21 +181,35 @@
       (if (= threshold size-or-threshold)
         ;; big
         ;; create new queue
-        (let [ch (langohr.channel/open connection)
+        (let [stream? (atom true)
+              ch (langohr.channel/open connection)
               response-queue (langohr.queue/declare-server-named
                               ch
                               {:exclusive false
                                :auto-delete true
-                               :durable true})]
+                               :durable true})
+              return-listener (lb/return-listener
+                                (fn [reply-code reply-text exchange routing-key
+                                     properties body]
+                                  (reset! stream? false)))]
+          ;; add return listener
+          (.addReturnListener ch return-listener)
           ;; put queue name on out-channel
           (async/>!! out-channel {:message {::response-queue response-queue}
                                   :metadata metadata})
 
           ;; publish everything from return onto it
           ;; maybe on a new thread?
-          (doseq [v return]
-            (lb/publish ch "" response-queue (pr-str v) metadata))
-          (lb/publish ch "" response-queue (pr-str ::stop) metadata))
+          (loop [v  (first return)
+                 vs (rest return)]
+            (when @stream?
+              (do (lb/publish ch "" response-queue (pr-str v)
+                              (assoc metadata :mandatory true))
+                  (when (seq vs)
+                    (recur (first vs) (rest vs))))))
+          (when @stream?
+            (lb/publish ch "" response-queue (pr-str ::stop)
+                        (assoc metadata :mandatory true))))
 
         ;; small
         (do
