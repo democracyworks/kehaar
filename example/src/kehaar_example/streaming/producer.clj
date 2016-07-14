@@ -7,11 +7,13 @@
 (def in-ch (async/chan))
 (def out-ch (async/chan))
 
-(defn countdown [n]
-  (log/info "Counting down from " n)
-  (when (>= n 0)
+(defn countdown [{:keys [num delay]}]
+  (log/info "Counting down from" num)
+  (when (>= num 0)
     (lazy-seq
-     (cons n (countdown (dec n))))))
+     (Thread/sleep (or delay 0))
+     (cons num (countdown {:num (dec num)
+                           :delay delay})))))
 
 (defn -main [& args]
   (log/info "Producer starting up...")

@@ -65,7 +65,7 @@
     :cancel (when (and close-channel?
                        (lq/declare-passive channel queue))
               (try (lq/delete channel queue)
-                   (catch Exception))) ; typically this fails when it's already gone
+                   (catch Exception _))) ; typically this fails when it's already gone
     ;; otherwise, let's log that
     (log/warn "Kehaar: I don't know how to process this:" ret
               "I'm designed to process messages containing :ack, :nack,

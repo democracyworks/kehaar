@@ -19,9 +19,24 @@
                              outgoing-countdown-requests)]
     (log/info "Consumer making a request!")
     (doseq [n [10 10 3 3 10]]
-      (let [return-ch (get-countdown n)]
+      (let [return-ch (get-countdown {:num n})]
         (loop []
+          (log/info "About to take")
           (when-let [v (async/<!! return-ch)]
-            (log/info "Got " v)
+            (log/info "Got" v)
             (recur)))))
+    (log/info "Consumer making a request!")
+    (let [return-ch (get-countdown {:num 100 :delay 2000})]
+      (dotimes [n 10]
+        (when-let [v (async/<!! return-ch)]
+          (log/info "Got" v)))
+      (async/close! return-ch)
+      (log/info "Closed return channel"))
+    (log/info "Consumer making a request!")
+    (let [return-ch (get-countdown {:num 4 :delay 3000})
+          v (async/<!! return-ch)]
+      (log/info "Got" v)
+      (async/close! return-ch)
+      (log/info "Closed return channel"))
+    (Thread/sleep 30000)
     (System/exit 0)))
