@@ -162,10 +162,9 @@
 
             (and (map? message)
                  (:kehaar.core/response-queue message))
-            (when-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
+            (if-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
               (let [message-channel (async/chan 1 (map :message))
                     response-queue (:kehaar.core/response-queue message)]
-                (swap! pending-calls update correlation-id assoc :response-queue response-queue)
                 (kehaar.core/rabbit=>async
                  ch
                  response-queue
@@ -181,7 +180,10 @@
                       (async/close! return-channel)
                       (if (async/>! return-channel msg)
                         (recur)
-                        (async/close! message-channel)))))))
+                        (async/close! message-channel))))))
+              (do
+                (log/info (format "Deleting queue %s" (:kehaar.core/response-queue message)))
+                (langohr.queue/delete ch (:kehaar.core/response-queue message))))
 
             :else
             (when-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
@@ -194,20 +196,18 @@
        (kehaar.core/go-handler
         [[return-channel message] channel]
         (let [correlation-id (str (java.util.UUID/randomUUID))
-              timeout (async/timeout timeout)]
+              timeout-ch (async/timeout timeout)]
           (swap! pending-calls assoc correlation-id {:return-channel return-channel
-                                                     :timeout timeout})
+                                                     :timeout timeout-ch})
           (async/>! >request-channel {:message message
                                       :metadata {:correlation-id correlation-id
                                                  :reply-to response-queue
                                                  :mandatory true}})
 
           (async/go
-            (async/<! timeout)
-            (when-let [timeout (get-in @pending-calls [correlation-id :timeout])]
+            (async/<! timeout-ch)
+            (when-let [timeout-ch (get-in @pending-calls [correlation-id :timeout])]
               (log/info "Streaming request timed out")
-              (when-let [response-queue (get-in @pending-calls [correlation-id :response-queue])]
-                (langohr.queue/delete ch response-queue))
               (async/close! (get-in @pending-calls [correlation-id :return-channel]))
               (swap! pending-calls dissoc correlation-id))))))
      ch)))

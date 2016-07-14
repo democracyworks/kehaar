@@ -62,8 +62,7 @@
   (case op
     :ack    (lb/ack  channel delivery-tag)
     :nack   (lb/nack channel delivery-tag false requeue)
-    :cancel (when (and close-channel?
-                       (lq/declare-passive channel queue))
+    :cancel (when close-channel?
               (try (lq/delete channel queue)
                    (catch Exception _))) ; typically this fails when it's already gone
     ;; otherwise, let's log that
