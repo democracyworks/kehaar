@@ -87,7 +87,10 @@
         ;; `outgoing-fib-requests` core.async channel. Uses the
         ;; "calculate-fib" queue the service set up.
         outgoing-service-ch (wire-up/external-service conn
+                                                      ""
                                                       "calculate-fib"
+                                                      {:auto-delete true}
+                                                      1000
                                                       outgoing-fib-requests)]
     [events-ch
      event-listener-ch
@@ -123,4 +126,8 @@
     (log/info "Requesting fib:" n)
     (let [fib-response (get-fib n)]
       (async/go
-        (log/info "Got fib:" n "Result:" (async/<! fib-response))))))
+        (log/info "Got fib:" n "Result:" (async/<! fib-response)))))
+
+  ;; Give it a few seconds then exit
+  (Thread/sleep 5000)
+  (System/exit 0))
