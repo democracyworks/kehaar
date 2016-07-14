@@ -116,7 +116,8 @@
           (log/warn "Kehaar: thread handler is closed.")
           (do
             (try
-              (f ch-message)
+              (async/thread
+                (f ch-message))
               (catch Throwable t
                 (log/error t "Kehaar: caught exception in thread-handler")))
             (recur)))))))
