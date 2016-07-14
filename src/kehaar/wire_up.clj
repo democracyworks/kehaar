@@ -163,10 +163,12 @@
             (and (map? message)
                  (:kehaar.core/response-queue message))
             (when-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
-              (let [message-channel (async/chan 1 (map :message))]
+              (let [message-channel (async/chan 1 (map :message))
+                    response-queue (:kehaar.core/response-queue message)]
+                (swap! pending-calls update correlation-id assoc :response-queue response-queue)
                 (kehaar.core/rabbit=>async
                  ch
-                 (:kehaar.core/response-queue message)
+                 response-queue
                  message-channel
                  {:exclusive true}
                  100
@@ -200,11 +202,14 @@
                                                  :reply-to response-queue
                                                  :mandatory true}})
 
-          (async/<! timeout)
-          (when-let [timeout (get-in @pending-calls [correlation-id :timeout])]
-            (log/info "Streaming request timed out")
-            (async/close! (get-in @pending-calls [correlation-id :return-channel]))
-            (swap! pending-calls dissoc correlation-id)))))
+          (async/go
+            (async/<! timeout)
+            (when-let [timeout (get-in @pending-calls [correlation-id :timeout])]
+              (log/info "Streaming request timed out")
+              (when-let [response-queue (get-in @pending-calls [correlation-id :response-queue])]
+                (langohr.queue/delete ch response-queue))
+              (async/close! (get-in @pending-calls [correlation-id :return-channel]))
+              (swap! pending-calls dissoc correlation-id))))))
      ch)))
 
 (defn async->fn
