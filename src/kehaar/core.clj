@@ -171,6 +171,12 @@
                                 :metadata metadata})))))
 
 (defn streaming-responder-fn
+  "Create a function that takes map of message and metadata, calls `f`
+  on message, and redirects the return to `out-channel`. If the size
+  of the response is going to be larger than `threshold`, they are
+  placed on a bespoke queue and the queue's name is placed on the
+  `out-channel` instead of the results. Sends a `::stop` message when
+  the response sequence is exhausted."
   [connection out-channel f threshold]
   (fn [{:keys [message metadata]}]
     (let [return (f message)

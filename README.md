@@ -81,12 +81,61 @@ Later, you can add a handler to it like this:
 (wire-up/start-responder! in-channel out-channel handler-function)
 ```
 
+* You want to connect to an external query-response service over
+  RabbitMQ that streams multiple responses to a single request.
+
+```clojure
+(let [ch (wire-up/streaming-external-service
+           conn
+           "service-works.service.query"
+           query-channel)] ;; a core.async channel
+  ;; later, on exit, close ch
+  (rmq/close ch))
+```
+
+Then you can create a function that "calls" that service, like so:
+
+```clojure
+(def query (wire-up/async->fn query-channel))
+```
+
+The returned function, when called, will return a core.async channel
+that will eventually contain the results. The returned function takes
+a single argument, which must be some edenizable value (including
+`nil`).
+
+* You want to make a streaming query-response service. Send requests
+  to in-channel and get responses on out-channel (core.async
+  channels).
+
+```clojure
+(let [ch (wire-up/incoming-service conn
+                                   "service-works.service.process"
+                                   (config [:queues "service-works.service.process"])
+                                   in-channel
+                                   out-channel)]
+  ;; later, on exit, close ch
+  (rmq/close ch))
+```
+
+Later, you can add a handler to it like this:
+
+```clojure
+(wire-up/start-streaming-responder!
+ conn in-channel out-channel streaming-handler-function 10)
+```
+
 Some notes:
 
 `handler-function` should be a function of a single argument. It
 accepts messages from the queue, which had been serialized and
 deserialized as EDN. So expect any kind of serializable value,
 including `nil`.
+
+`streaming-handler-function` should be a function of a single
+argument, like `handler-function`, but should always return a sequence
+(lazy, if you like). Each value in the sequence will be returned to
+the client in order.
 
 You can call `wire-up/start-responder!` multiple times to start
 different threads running the same handler.

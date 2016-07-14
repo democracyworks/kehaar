@@ -57,6 +57,9 @@
    (kehaar.core/responder-fn out-channel f)))
 
 (defn start-streaming-responder!
+  "Start a new thread that listens on in-channel and responds on
+  out-channel. threshold is the number of elements beyond which they
+  should be placed on a bespoke RabbitMQ for the consumer."
   [connection in-channel out-channel f threshold]
   (kehaar.core/thread-handler
    in-channel
