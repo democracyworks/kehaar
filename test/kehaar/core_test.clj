@@ -68,3 +68,16 @@
       (is (= {:message 100
               :metadata :dude!}
              (bounded<!! c 100))))))
+
+(deftest thread-handler-test
+  (testing "Carries on in the face of exceptions thrown by f"
+    (let [channel (async/chan)
+          results-channel (async/chan 3)
+          f (fn [n]
+              (async/>!! results-channel (/ 1 n)))]
+      (thread-handler channel f)
+      (async/>!! channel 2)
+      (async/>!! channel 0)
+      (async/>!! channel 3)
+      (is (= (/ 1 2) (async/<!! results-channel)))
+      (is (= (/ 1 3) (async/<!! results-channel))))))
