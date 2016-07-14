@@ -25,16 +25,23 @@
             (log/info "Got" v)
             (recur)))))
     (log/info "Consumer making a request!")
-    (let [return-ch (get-countdown {:num 100 :delay 2000})]
-      (dotimes [n 10]
-        (when-let [v (async/<!! return-ch)]
-          (log/info "Got" v)))
-      (async/close! return-ch)
-      (log/info "Closed return channel"))
-    (log/info "Consumer making a request!")
     (let [return-ch (get-countdown {:num 4 :delay 3000})
           v (async/<!! return-ch)]
       (log/info "Got" v)
       (async/close! return-ch)
       (log/info "Closed return channel"))
+    (log/info "Consumer making a request!")
+    (let [return-ch (get-countdown {:num 100 :delay 200})]
+      (dotimes [n 10]
+        (when-let [v (async/<!! return-ch)]
+          (log/info "Got" v)))
+      (async/close! return-ch)
+      (log/info "Closed return channel"))
+    (doseq [n [2 2 2 2 2]]
+      (let [return-ch (get-countdown {:num n})]
+        (loop []
+          (when-let [v (async/<!! return-ch)]
+            (log/info "Got" v)
+            (recur)))))
+    (Thread/sleep 10000)
     (System/exit 0)))
