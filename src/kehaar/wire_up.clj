@@ -152,7 +152,7 @@
         (let [correlation-id (:correlation-id metadata)]
           (cond
             (= :kehaar.core/stop message)
-            (when-let [return-channel (get @pending-calls correlation-id)]
+            (when-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
               (async/close! return-channel)
               (swap! pending-calls dissoc correlation-id))
 
@@ -162,7 +162,7 @@
 
             (and (map? message)
                  (:kehaar.core/response-queue message))
-            (when-let [return-channel (get @pending-calls correlation-id)]
+            (when-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
               (let [message-channel (async/chan 1 (map :message))]
                 (kehaar.core/rabbit=>async
                  ch
@@ -173,6 +173,8 @@
                  true)
                 (loop []
                   (let [msg (async/<! message-channel)]
+                    (when (get-in @pending-calls [correlation-id :timeout])
+                      (swap! pending-calls update correlation-id dissoc :timeout))
                     (if (nil? msg)
                       (async/close! return-channel)
                       (if (async/>! return-channel msg)
@@ -180,19 +182,29 @@
                         (async/close! message-channel)))))))
 
             :else
-            (when-let [return-channel (get @pending-calls correlation-id)]
+            (when-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
+              (when (get-in @pending-calls [correlation-id :timeout])
+                      (swap! pending-calls update correlation-id dissoc :timeout))
               (async/>! return-channel message)))))
 
        ;; bookkeeping for sending the requests
        (kehaar.core/async=>rabbit >request-channel ch exchange queue-name)
        (kehaar.core/go-handler
         [[return-channel message] channel]
-        (let [correlation-id (str (java.util.UUID/randomUUID))]
-          (swap! pending-calls assoc correlation-id return-channel)
+        (let [correlation-id (str (java.util.UUID/randomUUID))
+              timeout (async/timeout timeout)]
+          (swap! pending-calls assoc correlation-id {:return-channel return-channel
+                                                     :timeout timeout})
           (async/>! >request-channel {:message message
                                       :metadata {:correlation-id correlation-id
                                                  :reply-to response-queue
-                                                 :mandatory true}}))))
+                                                 :mandatory true}})
+
+          (async/<! timeout)
+          (when-let [timeout (get-in @pending-calls [correlation-id :timeout])]
+            (log/info "Streaming request timed out")
+            (async/close! (get-in @pending-calls [correlation-id :return-channel]))
+            (swap! pending-calls dissoc correlation-id)))))
      ch)))
 
 (defn async->fn
