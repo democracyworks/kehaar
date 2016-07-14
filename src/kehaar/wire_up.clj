@@ -82,7 +82,7 @@
   ([connection queue-name channel]
    (external-service connection ""
                      queue-name {:exclusive false
-                                 :durable true 
+                                 :durable true
                                  :auto-delete false}
                      1000 channel))
   ([connection exchange queue-name queue-options timeout channel]
