@@ -21,7 +21,6 @@
     (doseq [n [10 10 3 3 10]]
       (let [return-ch (get-countdown {:num n})]
         (loop []
-          (log/info "About to take")
           (when-let [v (async/<!! return-ch)]
             (log/info "Got" v)
             (recur)))))
@@ -38,5 +37,4 @@
       (log/info "Got" v)
       (async/close! return-ch)
       (log/info "Closed return channel"))
-    (Thread/sleep 30000)
     (System/exit 0)))
