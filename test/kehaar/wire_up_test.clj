@@ -189,3 +189,41 @@
           (async/close! ch-async)
           (rmq/close ch-rabbit)
           (rmq/close conn))))))
+
+(deftest ^:rabbit-mq start-streaming-responder!-test
+  (testing "streams responses on the out channel if size is below threshold"
+    (let [in-ch (async/chan 1)
+          out-ch (async/chan 10)
+          conn (rmq/connect rmq-config)]
+      (start-streaming-responder! conn in-ch out-ch range 10)
+      (async/>!! in-ch {:message 4})
+      (testing "sends a message saying the results will be inline"
+        (is (get-in (async/<!! out-ch) [:message :kehaar.core/inline])))
+      (testing "then sends the responses on that channel")
+      (is (= 0 (:message (async/<!! out-ch))))
+      (is (= 1 (:message (async/<!! out-ch))))
+      (is (= 2 (:message (async/<!! out-ch))))
+      (is (= 3 (:message (async/<!! out-ch))))))
+  (testing "streams responses on a bespoke queue if size is above threshold"
+    (let [in-ch (async/chan 1)
+          out-ch (async/chan 10)
+          conn (rmq/connect rmq-config)]
+      (start-streaming-responder! conn in-ch out-ch range 10)
+      (async/>!! in-ch {:message 100})
+      (testing "sends a message saying the results will be on a new queue"
+        (let [initial-response (async/<!! out-ch)
+              rabbit-queue (get-in initial-response [:message :kehaar.core/response-queue])]
+          (is rabbit-queue)
+          (testing "sends each response on the bespoke queue"
+            (doseq [n (range 100)]
+              (is (= (str n) (-> conn
+                                 lch/open
+                                 (lb/get rabbit-queue)
+                                 (nth 1)
+                                 (String. "UTF-8"))))))
+          (testing "then sends a stop message"
+            (is (= ":kehaar.core/stop" (-> conn
+                                           lch/open
+                                           (lb/get rabbit-queue)
+                                           (nth 1)
+                                           (String. "UTF-8"))))))))))
