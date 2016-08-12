@@ -1,5 +1,18 @@
 # Change Log
 
+## Changes between Kehaar 0.5.0 and HEAD
+
+### Streaming responders
+
+Added `start-streaming-responder!` and `streaming-external-service` to
+the `kehaar.wire-up` namespace for starting and consuming streaming
+responses. Those functions are used for streaming responders in place
+of `start-responder!` and `external-service` respectively.
+
+A streaming responder function merely needs to return a sequence
+(lazy, if you like) and the values from that sequence will be sent
+across RabbitMQ to a core.async channel on the consumer's side.
+
 ## Changes between Kehaar 0.4.0 and 0.5.0
 
 ### kehaar.rabbitmq/connect-with-retries
