@@ -1,6 +1,6 @@
 # Change Log
 
-## Changes between Kehaar 0.5.0 and HEAD
+## Changes between Kehaar 0.5.0 and 0.6.0
 
 ### Streaming responders
 
