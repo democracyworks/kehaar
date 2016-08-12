@@ -1,4 +1,5 @@
-(defproject democracyworks/kehaar "0.5.1-SNAPSHOT"
+(defproject democracyworks/kehaar "0.6.0-SNAPSHOT"
+  :url "https://github.com/democracyworks/kehaar"
   :description "Kehaar passes messages to and from RabbitMQ channels"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
@@ -8,4 +9,6 @@
                  [org.clojure/tools.logging "0.3.1"]]
   :test-selectors {:default (complement :rabbit-mq)
                    :rabbit-mq :rabbit-mq
-                   :all (constantly true)})
+                   :all (constantly true)}
+  :deploy-repositories [["releases" :clojars]
+                        ["snapshots" :clojars]])
