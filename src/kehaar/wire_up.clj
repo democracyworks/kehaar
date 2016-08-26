@@ -120,6 +120,7 @@
         (let [correlation-id (:correlation-id metadata)]
           (when-let [return-channel (get @pending-calls correlation-id)]
             (async/>! return-channel message)
+            (async/close! return-channel)
             (swap! pending-calls dissoc correlation-id))))
 
        ;; bookkeeping for sending the requests
