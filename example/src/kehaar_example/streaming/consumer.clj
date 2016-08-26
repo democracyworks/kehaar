@@ -1,22 +1,25 @@
 (ns kehaar-example.streaming.consumer
   (:require [kehaar.rabbitmq :as kehaar-rabbit]
-            [kehaar.wire-up :as wire-up]
+            [kehaar.configure :as configure]
             [clojure.core.async :as async]
             [clojure.tools.logging :as log]))
 
-(def outgoing-countdown-requests (async/chan 100))
-(def get-countdown (wire-up/async->fn outgoing-countdown-requests))
+(declare get-countdown)
 
 (defn -main [& args]
   (log/info "Consumer starting up...")
-  (let [connection (kehaar-rabbit/connect-with-retries)
-        outgoing-service-ch (wire-up/streaming-external-service
-                             connection
-                             ""
-                             "countdown"
-                             {}
-                             5000
-                             outgoing-countdown-requests)]
+  (let [connection (kehaar-rabbit/connect-with-retries)]
+
+    (configure/configure!
+     connection
+     {:external-services
+      [{:streaming? true
+        :exchange ""
+        :queue "countdown"
+        :queue-options {}
+        :timeout 5000
+        :f 'kehaar-example.streaming.consumer/get-countdown}]})
+
     (log/info "Consumer making a request!")
     (doseq [n [10 10 3 3 10]]
       (let [return-ch (get-countdown {:num n})]
