@@ -1,5 +1,12 @@
 # Change Log
 
+## Changes between Kehaar 0.7.2 and HEAD
+
+### kehaar.configured
+
+A new namespace with functions that allow for a more declarative
+description of your system.
+
 ## Changes between Kehaar 0.7.1 and 0.7.2
 
 Fixed the 3-arity version of `external-service-fire-and-forget` to

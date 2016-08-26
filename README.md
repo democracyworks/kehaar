@@ -8,45 +8,41 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 Add `[democracyworks/kehaar "0.7.0"]` to your dependencies.
 
-There are two ways to use Kehaar. Functions in `kehaar.core` are a
-low-level interface to connect up Rabbit and core.async. Functions in
-`kehaar.wire-up` use these low-level functions but also will do a lot
-of the low-level RabbitMQ channel and queue management for you.
+There are a few namespaces available for connecting core.async
+channels to rabbitmq. `kehaar.core` is a low-level
+interface. `kehaar.wire-up` is a level above. And finally,
+`kehaar.configured` is above that.
 
-In most cases, `kehaar.wire-up` should be all you need to set up
-services and events.
+In most cases, the `kehaar.configured` namespace and
+`kehaar.wire-up/async->fn` should be all you need to set up services
+and events.
 
-### High-level interface
+### kehaar.configured
 
-See the example project for more detail.
+See the example project for working examples. See the function
+docstrings for all available options.
 
-```clojure
-(require '[kehaar.wire-up :as wire-up])
-```
+Assuming that a rabbitmq connection is available as `connection`.
 
 Some typical patterns:
 
-* You want to listen for events on the "events" exchange. So you'll
-  need to declare it first.
+#### You want to listen for events on the "events" exchange.
+
+You'll need to declare it.
 
 ```clojure
-(let [ch (wire-up/declare-events-exchange conn
-                                          "events"
-                                          "topic"
-                                          (config [:topics "events"]))]
-  ;; later, on exit, close ch
-  (rmq/close ch))
+(kehaar.configured/init-exchange!
+ connection
+ {:exchange "events"})
 ```
 
-* You want to connect to an external query-response service over
-  RabbitMQ.
+#### You want to connect to an external query-response service over RabbitMQ.
 
 ```clojure
-(let [ch (wire-up/external-service conn
-                                   "service-works.service.process"
-                                   process-channel)] ;; a core.async channel
-  ;; later, on exit, close ch
-  (rmq/close ch))
+(kehaar.configured/init-external-service!
+ connection
+ {:queue "service-works.service.process"
+  :channel process-channel})
 ```
 
 Then you can create a function that "calls" that service, like so:
@@ -63,215 +59,80 @@ which must be some edenizable value (including `nil`).
 
 Some notes:
 
-There is also `wire-up/external-service-fire-and-forget` and
-`wire-up/async->fire-and-forget-fn` which are for services where you
-do not wish to wait for an answer. Instead of returning a core.async
-channel for a response, functions created with
-`wire-up/async->fire-and-forget-fn` will simply return `true` when
-they have successfully placed the message on the outgoing channel.
+* For "fire-and-forget" semantics, add set `:response` to `false` in
+  the options map.
+* If the service provides a stream of responses for each request, set
+  `:response` to `:streaming`.
 
-* You want to make a query-response service. Send requests to
-  in-channel and get responses on out-channel (core.async channels).
-
+#### You want to make a query-response service.
 
 ```clojure
-(let [ch (wire-up/incoming-service conn
-                                   "service-works.service.process"
-                                   (config [:queues "service-works.service.process"])
-                                   in-channel
-                                   out-channel)]
-  ;; later, on exit, close ch
-  (rmq/close ch))
-```
-
-Later, you can add a handler to it like this:
-
-```clojure
-(wire-up/start-responder! in-channel out-channel handler-function)
-```
-
-* You want to connect to an external query-response service over
-  RabbitMQ that streams multiple responses to a single request.
-
-```clojure
-(let [ch (wire-up/streaming-external-service
-           conn
-           "service-works.service.query"
-           query-channel)] ;; a core.async channel
-  ;; later, on exit, close ch
-  (rmq/close ch))
-```
-
-Then you can create a function that "calls" that service, like so:
-
-```clojure
-(def query (wire-up/async->fn query-channel))
-```
-
-The returned function, when called, will return a core.async channel
-that will eventually contain the results. The returned function takes
-a single argument, which must be some edenizable value (including
-`nil`).
-
-* You want to make a streaming query-response service. Send requests
-  to in-channel and get responses on out-channel (core.async
-  channels).
-
-```clojure
-(let [ch (wire-up/incoming-service conn
-                                   "service-works.service.process"
-                                   (config [:queues "service-works.service.process"])
-                                   in-channel
-                                   out-channel)]
-  ;; later, on exit, close ch
-  (rmq/close ch))
-```
-
-Later, you can add a handler to it like this:
-
-```clojure
-(wire-up/start-streaming-responder!
- conn in-channel out-channel streaming-handler-function 10)
+(kehaar.configured/init-incoming-service!
+ connection
+ {:queue "service-works.service.process"
+  :f 'fully.qualified/handler-function})
 ```
 
 Some notes:
 
-`handler-function` should be a function of a single argument. It
-accepts messages from the queue, which had been serialized and
-deserialized as EDN. So expect any kind of serializable value,
-including `nil`.
+* `handler-function` should be a function of a single argument. It
+  accepts messages from the queue, which had been serialized and
+  deserialized as EDN. So expect any kind of serializable value,
+  including `nil`.
+* If `:response` is `:streaming`, then `handler-function` should
+  return a sequence, which probably should be lazy. Each value in the
+  sequence will be returned to the client in order.
+* Incoming messages are nacked if the thread is taking too long to
+  process the messages. This allows different instances of the service
+  to process those messages.
+* If `:response` is `nil`, kehaar will not log error messages when the
+  incoming messages lack a reply-to queue. This can reduce log noise
+  if `:response` is set to `nil` on the request side.
 
-`streaming-handler-function` should be a function of a single
-argument, like `handler-function`, but should always return a sequence
-(lazy, if you like). Each value in the sequence will be returned to
-the client in order.
-
-`wire-up/start-responder!` and `wire-up/start-streaming-responder!`
-all take an extra optional argument for the number of threads to take
-and handle messages on. The default is 10.
-
-Incoming messages are nacked if the thread is taking too long to
-process the messages. This allows different instances of the service
-to process those messages.
-
-`in-channel` should be an unbuffered channel. `out-channel` should
-have a large buffer to get messages out to RabbitMQ as soon as
-possible.
-
-`wire-up/incoming-service` takes an optional argument
-`ignore-no-reply-to`. If true, kehaar will not log when an incomming
-message is missing the `:reply-to` metadata key. This will help
-prevent noise in the logs if the request comes from
-`async->fire-and-forget-fn`.
-
-* You want to listen for events on the events exchange. (First declare
-  the exchange above, only do that once.)
+#### You want to listen for events on a topic.
 
 ```clojure
-(let [ch (wire-up/incoming-events-channel conn
-                                          "my-service.events.create-something"
-                                          (config [:queues "my-service.events.create-something"])
-                                          "events"
-                                          "create-something"
-                                          create-something-events ;; events core.async channel
-                                          100)] ;; timeout
-  ;; later, on exit, close ch
-  (rmq/close ch))
-```
-
-Later, you can add an event handler like this:
-
-```
-(wire-up/start-event-handler! in-channel handler-function)
+(kehaar.configured/init-incoming-event!
+ connection
+ {:queue "my-service.events.create-something"
+  :exchange "events"
+  :routing-key "create-something"
+  :f 'fully.qualified/handler-function})
 ```
 
 Some notes:
+* `handler-function` is a function of exactly one argument, which is
+  the message that was passed down the rabbit hole. It's serialized on
+  the way to a ByteString using EDN, so only expect data that can be
+  EDN-ized.
 
-`in-channel` should be unbuffered.
-
-`handler-function` is a function of exactly one argument, which is the
-message that was passed down the rabbit hole. It's serialized on the
-way to a ByteString using EDN, so expect some data that can be
-edenized. The return can be any edenizable value (including `nil`) OR
-a core.async channel that will include the result (also must be
-edenizable). That second option lets you maintain asynchrony because
-other services using kehaar are doing the same.
-
-`wire-up/start-event-handler!` takes an optional argument for the
-number of threads to take and handle messages on. The default is 10.
-
-Incoming messages are nacked if the thread is taking too long to
-process the messages. This allows different instances of the service
-to process those messages.
-
-* You want to send events on the events exchange. (First declare the
-  exchange above, only do that once.)
+#### You want to send events on the events exchange.
 
 ```clojure
-(let [ch (wire-up/outgoing-events-channel conn
-                                          "events"
-                                          "create-something"
-                                          create-something-events)] ;; events core.async channel
-  ;; later, on exit, close ch
-  (rmq/close ch))
+(kehaar.configured/init-outgoing-event!
+ connection
+ {:exchange "events"
+  :routing-key "create-something"
+  :channel 'fully.qualified/created-event-channel})
 ```
 
-The event messages you send on the channel should be edenizable.
+The event messages you send on the channel must be EDN-izable.
 
-### Low-level interface
+### Cleanup
 
-#### Passing messages from RabbitMQ to core.async
+Each of the `kehaar.configured/init-` functions returns a map of
+resources that you'll want to clean up. Those maps may be passed to
+`kehaar.configured/shutdown-part!` to do that.
 
-```clojure
-(ns example
-  (:require [core.async :as async]
-            [kehaar.core :as k]))
+### Convenience
 
-(def messages-from-rabbit (async/chan))
-
-(k/rabbit=>async a-rabbit-channel
-                 "watership"
-                 messages-from-rabbit)
-```
-
-edn-encoded payloads on the "watership" queue will be decoded and
-placed on the `messages-from-rabbit` channel for you to deal with as
-you like. Each message has `:message` and `:metadata`.
-
-#### Passing messages from core.async to RabbitMQ
-
-```clojure
-(ns example
-  (:require [core.async :as async]
-            [kehaar.core :as k]))
-
-(def outgoing-messages (async/chan))
-
-(k/async=>rabbit outgoing-messages
-                 a-rabbit-channel
-                 "updates")
-```
-
-All messages sent to the `outgoing-messages` channel will encoded as
-edn and placed on the "updates" queue. Each message should have
-`:message` and `:metadata`.
-
-### Passing messages from core.async to RabbitMQ based on reply-to
-
-```clojure
-(ns example
-  (:require [core.async :as async]
-            [kehaar.core :as k]))
-
-(def outgoing-messages (async/chan))
-
-(k/async=>rabbit-with-reply-to outgoing-messages
-                               a-rabbit-channel)
-```
-
-All messages sent to the `outgoing-messages` channel will ebe ncoded
-as edn and placed on the queue specified in the `:reply-to` key in the
-metadata. Each message should have `:message` and `:metadata`.
+You can use `kehaar.configured/init!` to set up all the above examples
+in one go by passing a map with the keys `:event-exchanges`,
+`:incoming-services`, `:external-services`, `:incoming-events`, and
+`:outgoing-events`, each with a sequence of the maps for each kind of
+thing. The return value of which is a collection of all the
+shutdownable resources created in the process, and it may be passed to
+`kehaar.configured/shutdown!` to clean them all up.
 
 ## Backpressure
 
