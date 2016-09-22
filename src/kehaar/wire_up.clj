@@ -126,6 +126,22 @@
               (swap! pending-calls dissoc correlation-id))))))
      ch)))
 
+(defn external-service-fire-and-forget
+  "Wires up a core.async channel to a RabbitMQ queue. Just put a
+  message on the channel, it's that easy!"
+  ([connection queue-name channel]
+   (external-service connection ""
+                     queue-name {:exclusive false
+                                 :durable true
+                                 :auto-delete false}
+                     channel))
+  ([connection exchange queue-name queue-options channel]
+   (let [ch (langohr.channel/open connection)]
+     (langohr.queue/declare ch queue-name queue-options)
+
+     (kehaar.core/async=>rabbit channel ch exchange queue-name)
+     ch)))
+
 (defn streaming-external-service
   "Wires up a core.async channel to a RabbitMQ queue that provides
   responses. Use `async->fn` to create a function that puts to
