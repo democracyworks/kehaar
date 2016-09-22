@@ -242,10 +242,9 @@
       response-channel)))
 
 (defn async->fire-and-forget-fn
-  "Returns a fn that takes a message, creates a core.async channel for
-  the response for that message, and puts message and metadata on the
-  channel. Returns the value of async/>!! which returns true if
-  it was successfull putting a message on the channel."
+  "Returns a fn that takes a message and puts message and metadata on
+  the channel. Returns the value of async/>!! which returns true if it
+  was successfull putting a message on the channel."
   ([channel]
    (async->fire-and-forget-fn channel {}))
   ([channel metadata]
