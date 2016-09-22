@@ -128,7 +128,8 @@
 
 (defn external-service-fire-and-forget
   "Wires up a core.async channel to a RabbitMQ queue. Just put a
-  message on the channel, it's that easy!"
+  message on the channel. Use `async->fire-and-forget-fn` to create a
+  function that puts to that channel."
   ([connection queue-name channel]
    (external-service connection ""
                      queue-name {:exclusive false
