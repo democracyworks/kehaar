@@ -24,6 +24,4 @@
 
     (wire-up/start-streaming-responder!
      connection in-ch out-ch countdown 5))
-  (log/info "Producer ready!")
-  (loop []
-    (recur)))
+  (log/info "Producer ready!"))
