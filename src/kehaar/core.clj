@@ -150,7 +150,7 @@
               (if (nil? ch-message)
                 (do
                   (reset! channel-closed? true)
-                  (log/warn "Kehaar: thread handler is closed."))
+                  (log/trace "Kehaar: thread handler is closed."))
                 (do
                   (try
                     (f ch-message)
