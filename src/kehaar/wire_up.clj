@@ -48,7 +48,7 @@
   them to `handler`. Will loop over all messages, logging errors. When
   `channel` is closed, stop looping."
   ([channel handler]
-   (start-event-handler! default-thread-count))
+   (start-event-handler! channel handler default-thread-count))
   ([channel handler threads]
    (kehaar.core/thread-handler channel handler threads)))
 
