@@ -61,7 +61,9 @@
 (defn- ack-nack-or-cancel [channel queue close-channel? [op delivery-tag requeue :as ret]]
   (case op
     :ack    (lb/ack  channel delivery-tag)
-    :nack   (lb/nack channel delivery-tag false requeue)
+    :nack   (do
+              (lb/nack channel delivery-tag false requeue)
+              (Thread/sleep 1000))
     :cancel (when close-channel?
               (try (lq/delete channel queue)
                    (catch Exception _))) ; typically this fails when it's already gone
@@ -138,19 +140,24 @@
                 (pr-str metadata))))))
 
 (defn thread-handler
-  [channel f]
-  (async/thread
-    (loop []
-      (let [ch-message (async/<!! channel)]
-        (if (nil? ch-message)
-          (log/warn "Kehaar: thread handler is closed.")
-          (do
-            (try
-              (async/thread
-                (f ch-message))
-              (catch Throwable t
-                (log/error t "Kehaar: caught exception in thread-handler")))
-            (recur)))))))
+  [channel f thread-pool]
+  (let [channel-closed? (atom false)]
+    (async/thread
+      (loop []
+        (.submit thread-pool
+          (fn []
+            (let [ch-message (async/<!! channel)]
+              (if (nil? ch-message)
+                (do
+                  (reset! channel-closed? true)
+                  (log/warn "Kehaar: thread handler is closed."))
+                (do
+                  (try
+                    (f ch-message)
+                    (catch Throwable t
+                      (log/error t "Kehaar: caught exception in thread-handler"))))))))
+        (when-not @channel-closed?
+          (recur))))))
 
 (defn responder-fn
   "Create a function that takes map of message and metadata, calls `f`

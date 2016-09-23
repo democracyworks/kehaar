@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [kehaar.core :refer :all]
             [clojure.core.async :as async]
-            [kehaar.async :refer [bounded<!! bounded>!!]]))
+            [kehaar.async :refer [bounded<!! bounded>!!]])
+  (:import [java.util.concurrent Executors]))
 
 (defn edn-bytes
   "Returns a byte array of the edn representation of x."
@@ -71,11 +72,12 @@
 
 (deftest thread-handler-test
   (testing "Carries on in the face of exceptions thrown by f"
-    (let [channel (async/chan)
+    (let [thread-pool (Executors/newFixedThreadPool 1)
+          channel (async/chan)
           results-channel (async/chan 3)
           f (fn [n]
               (async/>!! results-channel (/ 1 n)))]
-      (thread-handler channel f)
+      (thread-handler channel f thread-pool)
       (async/>!! channel 2)
       (async/>!! channel 0)
       (async/>!! channel 3)
