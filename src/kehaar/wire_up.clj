@@ -82,12 +82,14 @@
   function.
 
   Returns a langohr channel. Please close it on exit."
-  [connection queue-name options in-channel out-channel]
-  (let [ch (langohr.channel/open connection)]
-    (langohr.queue/declare ch queue-name options)
-    (kehaar.core/rabbit=>async ch queue-name in-channel)
-    (kehaar.core/async=>rabbit-with-reply-to out-channel ch)
-    ch))
+  ([connection queue-name options in-channel out-channel]
+   (incoming-service connection queue-name options in-channel out-channel false))
+  ([connection queue-name options in-channel out-channel ignore-no-reply-to]
+   (let [ch (langohr.channel/open connection)]
+     (langohr.queue/declare ch queue-name options)
+     (kehaar.core/rabbit=>async ch queue-name in-channel)
+     (kehaar.core/async=>rabbit-with-reply-to out-channel ch ignore-no-reply-to)
+     ch)))
 
 (defn external-service
   "Wires up a core.async channel to a RabbitMQ queue that provides

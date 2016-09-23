@@ -126,18 +126,24 @@
   ```
   {:message  {...}  ;; message payload
   :metadata {:repy-to \"queue\"
-  ...}} ;; rabbit metadata
-  ```"
+             ...}} ;; rabbit metadata
+  ```
+
+  If there is no `:reply-to`, a warning will be logged, unless
+  `ignore-no-reply-to` is `true`"
   ([channel rabbit-channel]
    (async=>rabbit-with-reply-to channel rabbit-channel ""))
   ([channel rabbit-channel exchange]
+   (async=>rabbit-with-reply-to channel rabbit-channel "" false))
+  ([channel rabbit-channel exchange ignore-no-reply-to]
    (go-handler [{:keys [message metadata]} channel]
-    (if-let [reply-to (:reply-to metadata)]
-      (lb/publish rabbit-channel exchange reply-to (pr-str message)
-                  (assoc metadata :mandatory true))
-      (log/warn "Kehaar: No reply-to in metadata."
-                (pr-str message)
-                (pr-str metadata))))))
+     (if-let [reply-to (:reply-to metadata)]
+       (lb/publish rabbit-channel exchange reply-to (pr-str message)
+                   (assoc metadata :mandatory true))
+       (when-not ignore-no-reply-to
+         (log/warn "Kehaar: No reply-to in metadata."
+                   (pr-str message)
+                   (pr-str metadata)))))))
 
 (defn thread-handler
   [channel f threads]
