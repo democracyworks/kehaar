@@ -1,5 +1,24 @@
 # Change Log
 
+## Changes between Kehaar 0.6.0 and HEAD
+
+### Configurable number of threads to handle messages with
+
+`start-responder!`, `start-streaming-responder!`, and
+`start-event-handler!` can now take an extra argument: a number of
+threads to use to pull messages from their input channels. The threads
+will be created and be waiting on new messages immediately. The
+default number of threads is 10.
+
+### Sleeping on nack
+
+When `rabbit=>async` nacks a message, it sleeps for one second before
+attempting to take another message. Eventually this will be
+configurable.
+
+Together with the limited number of threads for message handlers, this
+better allows for backpressure from core.async to RabbitMQ.
+
 ## Changes between Kehaar 0.5.0 and 0.6.0
 
 ### Streaming responders
