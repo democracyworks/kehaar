@@ -5,8 +5,7 @@
             [langohr.consumers :as lc]
             [langohr.queue :as lq]
             [clojure.tools.logging :as log]
-            [kehaar.async :refer [bounded>!!]])
-  (:import [java.util.concurrent ThreadPoolExecutor]))
+            [kehaar.async :refer [bounded>!!]]))
 
 (defn read-payload
   "Unsafely read a byte array as edn."
@@ -141,21 +140,19 @@
                 (pr-str metadata))))))
 
 (defn thread-handler
-  [channel f ^ThreadPoolExecutor thread-pool]
-  (dotimes [_ (.getMaximumPoolSize thread-pool)]
-    (.submit thread-pool
-      ^Runnable
-      (fn []
-        (loop []
-          (let [ch-message (async/<!! channel)]
-            (if (nil? ch-message)
-              (log/trace "Kehaar: thread handler is closed.")
-              (do
-                (try
-                  (f ch-message)
-                  (catch Throwable t
-                    (log/error t "Kehaar: caught exception in thread-handler")))
-                (recur)))))))))
+  [channel f threads]
+  (dotimes [_ threads]
+    (async/thread
+      (loop []
+        (let [ch-message (async/<!! channel)]
+          (if (nil? ch-message)
+            (log/trace "Kehaar: thread handler is closed.")
+            (do
+              (try
+                (f ch-message)
+                (catch Throwable t
+                  (log/error t "Kehaar: caught exception in thread-handler")))
+              (recur))))))))
 
 (defn responder-fn
   "Create a function that takes map of message and metadata, calls `f`
