@@ -1,4 +1,4 @@
-(defproject democracyworks/kehaar "0.7.0"
+(defproject democracyworks/kehaar "0.7.1-SNAPSHOT"
   :url "https://github.com/democracyworks/kehaar"
   :description "Kehaar passes messages to and from RabbitMQ channels"
   :license {:name "Eclipse Public License"
