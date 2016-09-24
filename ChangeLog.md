@@ -1,6 +1,6 @@
 # Change Log
 
-## Changes between Kehaar 0.6.0 and HEAD
+## Changes between Kehaar 0.6.0 and 0.7.0
 
 ### Configurable number of threads to handle messages with
 
