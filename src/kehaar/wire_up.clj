@@ -41,29 +41,40 @@
     (langohr.exchange/declare ch name type options)
     ch))
 
+(def default-thread-count 10)
+
 (defn start-event-handler!
-  "Start a new thread listening for messages on `channel` and passing
+  "Start new threads listening for messages on `channel` and passing
   them to `handler`. Will loop over all messages, logging errors. When
   `channel` is closed, stop looping."
-  [channel handler]
-  (kehaar.core/thread-handler channel handler))
+  ([channel handler]
+   (start-event-handler! channel handler default-thread-count))
+  ([channel handler threads]
+   (kehaar.core/thread-handler channel handler threads)))
 
 (defn start-responder!
-  "Start a new thread that listens on in-channel and responds on
+  "Start new threads that listen on in-channel and responds on
   out-channel."
-  [in-channel out-channel f]
-  (kehaar.core/thread-handler
-   in-channel
-   (kehaar.core/responder-fn out-channel f)))
+  ([in-channel out-channel f]
+   (start-responder! in-channel out-channel f default-thread-count))
+  ([in-channel out-channel f threads]
+   (kehaar.core/thread-handler
+    in-channel
+    (kehaar.core/responder-fn out-channel f)
+    threads)))
 
 (defn start-streaming-responder!
-  "Start a new thread that listens on in-channel and responds on
+  "Start new threads that listen on in-channel and respond on
   out-channel. threshold is the number of elements beyond which they
   should be placed on a bespoke RabbitMQ for the consumer."
-  [connection in-channel out-channel f threshold]
-  (kehaar.core/thread-handler
-   in-channel
-   (kehaar.core/streaming-responder-fn connection out-channel f threshold)))
+  ([connection in-channel out-channel f threshold]
+   (start-streaming-responder! connection in-channel out-channel
+                               f threshold default-thread-count))
+  ([connection in-channel out-channel f threshold threads]
+   (kehaar.core/thread-handler
+    in-channel
+    (kehaar.core/streaming-responder-fn connection out-channel f threshold)
+    threads)))
 
 (defn incoming-service
   "Wire up an incoming channel and an outgoing channel. Later, you

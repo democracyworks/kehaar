@@ -6,7 +6,7 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 ## Usage
 
-Add `[democracyworks/kehaar "0.6.0"]` to your dependencies.
+Add `[democracyworks/kehaar "0.7.0"]` to your dependencies.
 
 There are two ways to use Kehaar. Functions in `kehaar.core` are a
 low-level interface to connect up Rabbit and core.async. Functions in
@@ -137,8 +137,9 @@ argument, like `handler-function`, but should always return a sequence
 (lazy, if you like). Each value in the sequence will be returned to
 the client in order.
 
-You can call `wire-up/start-responder!` multiple times to start
-different threads running the same handler.
+`wire-up/start-responder!` and `wire-up/start-streaming-responder!`
+all take an extra optional argument for the number of threads to take
+and handle messages on. The default is 10.
 
 Incoming messages are nacked if the thread is taking too long to
 process the messages. This allows different instances of the service
@@ -181,7 +182,8 @@ a core.async channel that will include the result (also must be
 edenizable). That second option lets you maintain asynchrony because
 other services using kehaar are doing the same.
 
-Each call to `wire-up/start-event-handler!` creates a new thread.
+`wire-up/start-event-handler!` takes an optional argument for the
+number of threads to take and handle messages on. The default is 10.
 
 Incoming messages are nacked if the thread is taking too long to
 process the messages. This allows different instances of the service
