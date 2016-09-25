@@ -83,12 +83,12 @@
 
   Returns a langohr channel. Please close it on exit."
   ([connection queue-name options in-channel out-channel]
-   (incoming-service connection queue-name options in-channel out-channel false))
-  ([connection queue-name options in-channel out-channel ignore-no-reply-to]
+   (incoming-service connection "" queue-name options in-channel out-channel false))
+  ([connection exchange queue-name options in-channel out-channel ignore-no-reply-to]
    (let [ch (langohr.channel/open connection)]
      (langohr.queue/declare ch queue-name options)
      (kehaar.core/rabbit=>async ch queue-name in-channel)
-     (kehaar.core/async=>rabbit-with-reply-to out-channel ch ignore-no-reply-to)
+     (kehaar.core/async=>rabbit-with-reply-to out-channel ch exchange ignore-no-reply-to)
      ch)))
 
 (defn external-service
