@@ -61,6 +61,15 @@ services, this channel can be returned from a handler as well, letting
 you chain async calls. The returned function takes a single argument,
 which must be some edenizable value (including `nil`).
 
+Some notes:
+
+There is also `wire-up/external-service-fire-and-forget` and
+`wire-up/async->fire-and-forget-fn` which are for services where you
+do not wish to wait for an answer. Instead of returning a core.async
+channel for a response, functions created with
+`wire-up/async->fire-and-forget-fn` will simply return `true` when
+they have successfully placed the message on the outgoing channel.
+
 * You want to make a query-response service. Send requests to
   in-channel and get responses on out-channel (core.async channels).
 
@@ -148,6 +157,12 @@ to process those messages.
 `in-channel` should be an unbuffered channel. `out-channel` should
 have a large buffer to get messages out to RabbitMQ as soon as
 possible.
+
+`wire-up/incoming-service` takes an optional argument
+`ignore-no-reply-to`. If true, kehaar will not log when an incomming
+message is missing the `:reply-to` metadata key. This will help
+prevent noise in the logs if the request comes from
+`async->fire-and-forget-fn`.
 
 * You want to listen for events on the events exchange. (First declare
   the exchange above, only do that once.)
