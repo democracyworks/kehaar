@@ -82,12 +82,14 @@
   function.
 
   Returns a langohr channel. Please close it on exit."
-  [connection queue-name options in-channel out-channel]
-  (let [ch (langohr.channel/open connection)]
-    (langohr.queue/declare ch queue-name options)
-    (kehaar.core/rabbit=>async ch queue-name in-channel)
-    (kehaar.core/async=>rabbit-with-reply-to out-channel ch)
-    ch))
+  ([connection queue-name options in-channel out-channel]
+   (incoming-service connection "" queue-name options in-channel out-channel false))
+  ([connection exchange queue-name options in-channel out-channel ignore-no-reply-to]
+   (let [ch (langohr.channel/open connection)]
+     (langohr.queue/declare ch queue-name options)
+     (kehaar.core/rabbit=>async ch queue-name in-channel)
+     (kehaar.core/async=>rabbit-with-reply-to out-channel ch exchange ignore-no-reply-to)
+     ch)))
 
 (defn external-service
   "Wires up a core.async channel to a RabbitMQ queue that provides
@@ -135,6 +137,23 @@
             (when-let [chan (get @pending-calls correlation-id)]
               (async/close! chan)
               (swap! pending-calls dissoc correlation-id))))))
+     ch)))
+
+(defn external-service-fire-and-forget
+  "Wires up a core.async channel to a RabbitMQ queue. Just put a
+  message on the channel. Use `async->fire-and-forget-fn` to create a
+  function that puts to that channel."
+  ([connection queue-name channel]
+   (external-service connection ""
+                     queue-name {:exclusive false
+                                 :durable true
+                                 :auto-delete false}
+                     channel))
+  ([connection exchange queue-name queue-options channel]
+   (let [ch (langohr.channel/open connection)]
+     (langohr.queue/declare ch queue-name queue-options)
+
+     (kehaar.core/async=>rabbit channel ch exchange queue-name)
      ch)))
 
 (defn streaming-external-service
@@ -235,3 +254,14 @@
     (let [response-channel (async/chan 1)]
       (async/>!! channel [response-channel message])
       response-channel)))
+
+(defn async->fire-and-forget-fn
+  "Returns a fn that takes a message and puts message and metadata on
+  the channel. Returns the value of async/>!! which returns true if it
+  was successfull putting a message on the channel."
+  ([channel]
+   (async->fire-and-forget-fn channel {}))
+  ([channel metadata]
+   (fn [message]
+     (async/>!! channel {:metadata metadata
+                         :message message}))))

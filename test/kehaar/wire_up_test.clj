@@ -193,6 +193,21 @@
           (rmq/close ch-rabbit)
           (rmq/close conn))))))
 
+(deftest async->fire-and-forget-fn-test
+  (testing "async->fire-and-forget-fn structure"
+    (let [c (async/chan 1) ; we need buffered channels for external services
+          send-fn (async->fire-and-forget-fn c)
+          message {:test true}]
+      (send-fn message) ; we need buffered channels for external services
+      (is (= {:metadata {} :message message} (async/<!! c)))))
+  (testing "async->fire-and-forget-fn custom metadata"
+    (let [c (async/chan 1)
+          metadata {:anything :can-go-here}
+          send-fn (async->fire-and-forget-fn c metadata)
+          message {:test true}]
+      (send-fn message)
+      (is (= {:metadata metadata :message message} (async/<!! c))))))
+
 (deftest ^:rabbit-mq start-streaming-responder!-test
   (testing "streams responses on the out channel if size is below threshold"
     (let [in-ch (async/chan 1)
