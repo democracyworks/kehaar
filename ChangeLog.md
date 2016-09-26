@@ -1,5 +1,20 @@
 # Change Log
 
+## Changes between Kehaar 0.7.0 and 0.7.1
+
+### Fire and forget
+
+Added `external-service-fire-and-forget` and
+`async->fire-and-forget-fn`, used much like their counterparts without
+"fire-and-forget" in their names to send messages to an external
+service but without waiting for a response.
+
+Added an optional argument to `incoming-service` called
+`ignore-no-reply-to`, which causes it to no longer log warnings when a
+message comes without the `:reply-to` metadata set. Good for
+decreasing the noise in a service you expect to be used by the "fire
+and forget" functions above.
+
 ## Changes between Kehaar 0.6.0 and 0.7.0
 
 ### Configurable number of threads to handle messages with
