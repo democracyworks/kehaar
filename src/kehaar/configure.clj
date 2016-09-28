@@ -2,13 +2,16 @@
   (:require [kehaar.wire-up :as wire-up]
             [clojure.core.async :as async]))
 
+(def default-thread-count 10)
+
 (defn require-ns [sym]
   (let [ns' (symbol (namespace sym))]
     (when-not (find-ns ns')
       (require ns'))))
 
 (defn configure! [connection configuration]
-  (let [{:keys [incoming-services external-services incoming-events outgoing-events]}
+  (let [{:keys [incoming-services external-services incoming-events
+                outgoing-events threads]}
         configuration]
     (doseq [{:keys [f threshold queue queue-options streaming?]}
             incoming-services]
@@ -26,10 +29,13 @@
                                               in-chan
                                               out-chan
                                               f-var
-                                              threshold)
+                                              threshold
+                                              (or threads
+                                                  default-thread-count))
           (wire-up/start-responder! in-chan
                                     out-chan
-                                    f-var))))
+                                    f-var
+                                    (or threads default-thread-count)))))
     (doseq [{:keys [streaming? exchange queue queue-options timeout f]}
             external-services]
       (require-ns f)
@@ -45,7 +51,7 @@
                                queue-options
                                timeout
                                channel))))
-    (doseq [{:keys [queue queue-options topic routing-key timeout f]}
+    (doseq [{:keys [queue queue-options topic routing-key timeout f threads]}
             incoming-events]
       (require-ns f)
       (let [channel (async/chan 100)]
@@ -56,7 +62,8 @@
                                          routing-key
                                          channel
                                          timeout)
-        (wire-up/start-event-handler! channel (find-var f))))
+        (wire-up/start-event-handler! channel (find-var f)
+                                      (or threads default-thread-count))))
     (doseq [{:keys [topic routing-key channel]}
             outgoing-events]
       (require-ns channel)

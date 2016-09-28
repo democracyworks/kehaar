@@ -41,40 +41,32 @@
     (langohr.exchange/declare ch name type options)
     ch))
 
-(def default-thread-count 10)
-
 (defn start-event-handler!
   "Start new threads listening for messages on `channel` and passing
   them to `handler`. Will loop over all messages, logging errors. When
-  `channel` is closed, stop looping."
-  ([channel handler]
-   (start-event-handler! channel handler default-thread-count))
-  ([channel handler threads]
-   (kehaar.core/thread-handler channel handler threads)))
+  `channel` is closed, stop looping. It will start `threads` number of
+  threads to process incoming messages."
+  [channel handler threads]
+  (kehaar.core/thread-handler channel handler threads))
 
 (defn start-responder!
-  "Start new threads that listen on in-channel and responds on
-  out-channel."
-  ([in-channel out-channel f]
-   (start-responder! in-channel out-channel f default-thread-count))
-  ([in-channel out-channel f threads]
-   (kehaar.core/thread-handler
-    in-channel
-    (kehaar.core/responder-fn out-channel f)
-    threads)))
+  "Start `threads` new threads that listen on `in-channel` and responds on
+  `out-channel`."
+  [in-channel out-channel f threads]
+  (kehaar.core/thread-handler
+   in-channel
+   (kehaar.core/responder-fn out-channel f)
+   threads))
 
 (defn start-streaming-responder!
-  "Start new threads that listen on in-channel and respond on
+  "Start `threads` new threads that listen on in-channel and respond on
   out-channel. threshold is the number of elements beyond which they
   should be placed on a bespoke RabbitMQ for the consumer."
-  ([connection in-channel out-channel f threshold]
-   (start-streaming-responder! connection in-channel out-channel
-                               f threshold default-thread-count))
-  ([connection in-channel out-channel f threshold threads]
-   (kehaar.core/thread-handler
-    in-channel
-    (kehaar.core/streaming-responder-fn connection out-channel f threshold)
-    threads)))
+  [connection in-channel out-channel f threshold threads]
+  (kehaar.core/thread-handler
+   in-channel
+   (kehaar.core/streaming-responder-fn connection out-channel f threshold)
+   threads))
 
 (defn incoming-service
   "Wire up an incoming channel and an outgoing channel. Later, you
