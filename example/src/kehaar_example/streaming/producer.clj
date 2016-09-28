@@ -14,7 +14,6 @@
 (defn -main [& args]
   (log/info "Producer starting up...")
   (let [connection (kehaar-rabbit/connect-with-retries)]
-
     (configure/configure!
      connection
      {:incoming-services [{:streaming? true
