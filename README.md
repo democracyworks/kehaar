@@ -6,7 +6,7 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 ## Usage
 
-Add `[democracyworks/kehaar "0.6.0"]` to your dependencies.
+Add `[democracyworks/kehaar "0.7.0"]` to your dependencies.
 
 There are two ways to use Kehaar. Functions in `kehaar.core` are a
 low-level interface to connect up Rabbit and core.async. Functions in
@@ -60,6 +60,15 @@ that will eventually contain the result. If you're chaining up
 services, this channel can be returned from a handler as well, letting
 you chain async calls. The returned function takes a single argument,
 which must be some edenizable value (including `nil`).
+
+Some notes:
+
+There is also `wire-up/external-service-fire-and-forget` and
+`wire-up/async->fire-and-forget-fn` which are for services where you
+do not wish to wait for an answer. Instead of returning a core.async
+channel for a response, functions created with
+`wire-up/async->fire-and-forget-fn` will simply return `true` when
+they have successfully placed the message on the outgoing channel.
 
 * You want to make a query-response service. Send requests to
   in-channel and get responses on out-channel (core.async channels).
@@ -137,8 +146,9 @@ argument, like `handler-function`, but should always return a sequence
 (lazy, if you like). Each value in the sequence will be returned to
 the client in order.
 
-You can call `wire-up/start-responder!` multiple times to start
-different threads running the same handler.
+`wire-up/start-responder!` and `wire-up/start-streaming-responder!`
+all take an extra optional argument for the number of threads to take
+and handle messages on. The default is 10.
 
 Incoming messages are nacked if the thread is taking too long to
 process the messages. This allows different instances of the service
@@ -147,6 +157,12 @@ to process those messages.
 `in-channel` should be an unbuffered channel. `out-channel` should
 have a large buffer to get messages out to RabbitMQ as soon as
 possible.
+
+`wire-up/incoming-service` takes an optional argument
+`ignore-no-reply-to`. If true, kehaar will not log when an incomming
+message is missing the `:reply-to` metadata key. This will help
+prevent noise in the logs if the request comes from
+`async->fire-and-forget-fn`.
 
 * You want to listen for events on the events exchange. (First declare
   the exchange above, only do that once.)
@@ -181,7 +197,8 @@ a core.async channel that will include the result (also must be
 edenizable). That second option lets you maintain asynchrony because
 other services using kehaar are doing the same.
 
-Each call to `wire-up/start-event-handler!` creates a new thread.
+`wire-up/start-event-handler!` takes an optional argument for the
+number of threads to take and handle messages on. The default is 10.
 
 Incoming messages are nacked if the thread is taking too long to
 process the messages. This allows different instances of the service

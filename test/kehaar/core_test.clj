@@ -75,7 +75,7 @@
           results-channel (async/chan 3)
           f (fn [n]
               (async/>!! results-channel (/ 1 n)))]
-      (thread-handler channel f)
+      (thread-handler channel f 1)
       (async/>!! channel 2)
       (async/>!! channel 0)
       (async/>!! channel 3)

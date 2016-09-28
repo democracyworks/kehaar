@@ -61,7 +61,9 @@
 (defn- ack-nack-or-cancel [channel queue close-channel? [op delivery-tag requeue :as ret]]
   (case op
     :ack    (lb/ack  channel delivery-tag)
-    :nack   (lb/nack channel delivery-tag false requeue)
+    :nack   (do
+              (lb/nack channel delivery-tag false requeue)
+              (Thread/sleep 1000))
     :cancel (when close-channel?
               (try (lq/delete channel queue)
                    (catch Exception _))) ; typically this fails when it's already gone
@@ -124,33 +126,39 @@
   ```
   {:message  {...}  ;; message payload
   :metadata {:repy-to \"queue\"
-  ...}} ;; rabbit metadata
-  ```"
+             ...}} ;; rabbit metadata
+  ```
+
+  If there is no `:reply-to`, a warning will be logged, unless
+  `ignore-no-reply-to` is `true`"
   ([channel rabbit-channel]
    (async=>rabbit-with-reply-to channel rabbit-channel ""))
   ([channel rabbit-channel exchange]
+   (async=>rabbit-with-reply-to channel rabbit-channel "" false))
+  ([channel rabbit-channel exchange ignore-no-reply-to]
    (go-handler [{:keys [message metadata]} channel]
-    (if-let [reply-to (:reply-to metadata)]
-      (lb/publish rabbit-channel exchange reply-to (pr-str message)
-                  (assoc metadata :mandatory true))
-      (log/warn "Kehaar: No reply-to in metadata."
-                (pr-str message)
-                (pr-str metadata))))))
+     (if-let [reply-to (:reply-to metadata)]
+       (lb/publish rabbit-channel exchange reply-to (pr-str message)
+                   (assoc metadata :mandatory true))
+       (when-not ignore-no-reply-to
+         (log/warn "Kehaar: No reply-to in metadata."
+                   (pr-str message)
+                   (pr-str metadata)))))))
 
 (defn thread-handler
-  [channel f]
-  (async/thread
-    (loop []
-      (let [ch-message (async/<!! channel)]
-        (if (nil? ch-message)
-          (log/warn "Kehaar: thread handler is closed.")
-          (do
-            (try
-              (async/thread
-                (f ch-message))
-              (catch Throwable t
-                (log/error t "Kehaar: caught exception in thread-handler")))
-            (recur)))))))
+  [channel f threads]
+  (dotimes [_ threads]
+    (async/thread
+      (loop []
+        (let [ch-message (async/<!! channel)]
+          (if (nil? ch-message)
+            (log/trace "Kehaar: thread handler is closed.")
+            (do
+              (try
+                (f ch-message)
+                (catch Throwable t
+                  (log/error t "Kehaar: caught exception in thread-handler")))
+              (recur))))))))
 
 (defn responder-fn
   "Create a function that takes map of message and metadata, calls `f`
