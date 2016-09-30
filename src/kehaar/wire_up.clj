@@ -144,11 +144,11 @@
   message on the channel. Use `async->fire-and-forget-fn` to create a
   function that puts to that channel."
   ([connection queue-name channel]
-   (external-service connection ""
-                     queue-name {:exclusive false
-                                 :durable true
-                                 :auto-delete false}
-                     channel))
+   (external-service-fire-and-forget connection ""
+                                     queue-name {:exclusive false
+                                                 :durable true
+                                                 :auto-delete false}
+                                     channel))
   ([connection exchange queue-name queue-options channel]
    (let [ch (langohr.channel/open connection)]
      (langohr.queue/declare ch queue-name queue-options)
