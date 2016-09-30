@@ -1,5 +1,10 @@
 # Change Log
 
+## Changes between Kehaar 0.7.1 and 0.7.2
+
+Fixed the 3-arity version of `external-service-fire-and-forget` to
+call the 5-arity version of itself.
+
 ## Changes between Kehaar 0.7.0 and 0.7.1
 
 ### Fire and forget
