@@ -1,5 +1,6 @@
 (ns kehaar.wire-up
   (:require
+   [langohr.basic]
    [langohr.queue]
    [langohr.channel]
    [langohr.exchange]
@@ -12,8 +13,11 @@
   `routing-key`.
 
   Returns a langohr channel. Please close it on exit."
-  [connection queue-name options topic-name routing-key channel timeout]
-  (let [ch (langohr.channel/open connection)
+  [connection queue-name options topic-name routing-key channel timeout
+   & [qos]]
+  (let [qos (or qos 10)
+        ch (langohr.channel/open connection)
+        _ (langohr.basic/qos ch qos)
         queue (:queue (langohr.queue/declare ch queue-name options))
         message-channel (async/chan 1 (map :message))]
     (async/pipe message-channel channel true)
@@ -84,8 +88,11 @@
   Returns a langohr channel. Please close it on exit."
   ([connection queue-name options in-channel out-channel]
    (incoming-service connection "" queue-name options in-channel out-channel false))
-  ([connection exchange queue-name options in-channel out-channel ignore-no-reply-to]
-   (let [ch (langohr.channel/open connection)]
+  ([connection exchange queue-name options in-channel out-channel
+    ignore-no-reply-to & [qos]]
+   (let [ch (langohr.channel/open connection)
+         qos (or qos 10)]
+     (langohr.basic/qos ch qos)
      (langohr.queue/declare ch queue-name options)
      (kehaar.core/rabbit=>async ch queue-name in-channel)
      (kehaar.core/async=>rabbit-with-reply-to out-channel ch exchange ignore-no-reply-to)
