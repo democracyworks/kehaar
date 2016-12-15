@@ -54,7 +54,7 @@ You'll need to declare it.
 (kehaar.configured/init-external-service!
  connection
  {:queue "service-works.service.process"
-  :channel process-channel})
+  :channel 'fully.qualified/process-channel})
 ```
 
 Then you can create a function that "calls" that service, like so:
