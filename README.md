@@ -22,11 +22,23 @@ and events.
 See the example project for working examples. See the function
 docstrings for all available options.
 
+#### Convenience
+
+You can use `kehaar.configured/init!` to set up all the below examples
+in one go by passing a map with the keys `:event-exchanges`,
+`:incoming-services`, `:external-services`, `:incoming-events`, and
+`:outgoing-events`, each with a sequence of the maps for each kind of
+thing. The return value of which is a collection of all the
+shutdownable resources created in the process, and it may be passed to
+`kehaar.configured/shutdown!` to clean them all up.
+
+#### Examples
+
 Assuming that a rabbitmq connection is available as `connection`.
 
 Some typical patterns:
 
-#### You want to listen for events on the "events" exchange.
+##### You want to listen for events on the "events" exchange.
 
 You'll need to declare it.
 
@@ -36,7 +48,7 @@ You'll need to declare it.
  {:exchange "events"})
 ```
 
-#### You want to connect to an external query-response service over RabbitMQ.
+##### You want to connect to an external query-response service over RabbitMQ.
 
 ```clojure
 (kehaar.configured/init-external-service!
@@ -59,12 +71,12 @@ which must be some edenizable value (including `nil`).
 
 Some notes:
 
-* For "fire-and-forget" semantics, add set `:response` to `false` in
-  the options map.
+* For "fire-and-forget" semantics, set `:response` to `false` in the
+  options map.
 * If the service provides a stream of responses for each request, set
   `:response` to `:streaming`.
 
-#### You want to make a query-response service.
+##### You want to make a query-response service.
 
 ```clojure
 (kehaar.configured/init-incoming-service!
@@ -89,7 +101,7 @@ Some notes:
   incoming messages lack a reply-to queue. This can reduce log noise
   if `:response` is set to `nil` on the request side.
 
-#### You want to listen for events on a topic.
+##### You want to listen for events on a topic.
 
 ```clojure
 (kehaar.configured/init-incoming-event!
@@ -106,7 +118,7 @@ Some notes:
   the way to a ByteString using EDN, so only expect data that can be
   EDN-ized.
 
-#### You want to send events on the events exchange.
+##### You want to send events on the events exchange.
 
 ```clojure
 (kehaar.configured/init-outgoing-event!
@@ -118,21 +130,11 @@ Some notes:
 
 The event messages you send on the channel must be EDN-izable.
 
-### Cleanup
+#### Cleanup
 
 Each of the `kehaar.configured/init-` functions returns a map of
 resources that you'll want to clean up. Those maps may be passed to
 `kehaar.configured/shutdown-part!` to do that.
-
-### Convenience
-
-You can use `kehaar.configured/init!` to set up all the above examples
-in one go by passing a map with the keys `:event-exchanges`,
-`:incoming-services`, `:external-services`, `:incoming-events`, and
-`:outgoing-events`, each with a sequence of the maps for each kind of
-thing. The return value of which is a collection of all the
-shutdownable resources created in the process, and it may be passed to
-`kehaar.configured/shutdown!` to clean them all up.
 
 ## Backpressure
 
@@ -149,7 +151,7 @@ You can start multiple threads with the same handler by calling
 `wire-up/start-responder!` and `wire-up/start-event-handler!` multiple
 times.
 
-### Connecting to RabbitMQ
+## Connecting to RabbitMQ
 
 While it is perfectly acceptable to connect to RabbitMQ using langohr
 directly, there is also `kehaar.rabbitmq/connect-with-retries`. This
