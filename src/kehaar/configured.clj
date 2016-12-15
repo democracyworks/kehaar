@@ -160,16 +160,27 @@ Valid keys for the `external-service-options` are:
 
   (require-ns channel)
   (let [channel-val (var-get (find-var channel))
-        external-service-fn (cond
-                              (= response :streaming) wire-up/streaming-external-service
-                              (not response) wire-up/external-service-fire-and-forget
-                              :else wire-up/external-service)
-        rabbit-ch (external-service-fn connection
-                                       exchange
-                                       queue
-                                       queue-options
-                                       timeout
-                                       channel-val)]
+        rabbit-ch (cond
+                    (= response :streaming) (wire-up/streaming-external-service
+                                             connection
+                                             exchange
+                                             queue
+                                             queue-options
+                                             timeout
+                                             channel-val)
+                    (not response) (wire-up/external-service-fire-and-forget
+                                    connection
+                                    exchange
+                                    queue
+                                    queue-options
+                                    channel-val)
+                    :else (wire-up/external-service
+                           connection
+                           exchange
+                           queue
+                           queue-options
+                           timeout
+                           channel-val))]
     {:rabbit-channel rabbit-ch}))
 
 (defn init-incoming-event!
