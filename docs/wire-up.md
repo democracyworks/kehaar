@@ -144,6 +144,10 @@ message is missing the `:reply-to` metadata key. This will help
 prevent noise in the logs if the request comes from
 `async->fire-and-forget-fn`.
 
+`wire-up/incoming-service` takes a further optional argument
+`prefetch-limit`. If it's non-nil, the channel's prefetch limit will
+be set to its value.
+
 * You want to listen for events on the events exchange. (First declare
   the exchange above, only do that once.)
 
@@ -183,6 +187,10 @@ number of threads to take and handle messages on. The default is 10.
 Incoming messages are nacked if the thread is taking too long to
 process the messages. This allows different instances of the service
 to process those messages.
+
+`wire-up/incoming-events-channel` takes a further optional argument
+`prefetch-limit`. If it's non-nil, the channel's prefetch limit will
+be set to its value.
 
 * You want to send events on the events exchange. (First declare the
   exchange above, only do that once.)
