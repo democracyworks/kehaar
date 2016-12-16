@@ -107,8 +107,8 @@ Valid keys for the `incoming-service-options` are:
                                             queue-options
                                             in-chan
                                             out-chan
-                                            ignore-no-reply-to?)]
-    (lb/qos rabbit-ch prefetch-limit)
+                                            ignore-no-reply-to?
+                                            prefetch-limit)]
     (if streaming?
       (wire-up/start-streaming-responder! connection
                                           in-chan
@@ -222,8 +222,8 @@ Valid keys for the `incoming-event-options` are:
                                                    exchange
                                                    routing-key
                                                    channel
-                                                   timeout)]
-    (lb/qos rabbit-ch prefetch-limit)
+                                                   timeout
+                                                   prefetch-limit)]
     (wire-up/start-event-handler! channel (find-var f))
 
     {:rabbit-channel rabbit-ch

@@ -1,5 +1,6 @@
 (ns kehaar.wire-up
   (:require
+   [langohr.basic :as lb]
    [langohr.queue]
    [langohr.channel]
    [langohr.exchange]
@@ -12,14 +13,18 @@
   `routing-key`.
 
   Returns a langohr channel. Please close it on exit."
-  [connection queue-name options topic-name routing-key channel timeout]
-  (let [ch (langohr.channel/open connection)
-        queue (:queue (langohr.queue/declare ch queue-name options))
-        message-channel (async/chan 1 (map :message))]
-    (async/pipe message-channel channel true)
-    (langohr.queue/bind ch queue topic-name {:routing-key routing-key})
-    (kehaar.core/rabbit=>async ch queue message-channel options timeout)
-    ch))
+  ([connection queue-name options topic-name routing-key channel timeout]
+   (incoming-events-channel connection queue-name options topic-name routing-key channel timeout nil))
+  ([connection queue-name options topic-name routing-key channel timeout prefetch-limit]
+   (let [ch (langohr.channel/open connection)
+         queue (:queue (langohr.queue/declare ch queue-name options))
+         message-channel (async/chan 1 (map :message))]
+     (when prefetch-limit
+       (lb/qos ch prefetch-limit))
+     (async/pipe message-channel channel true)
+     (langohr.queue/bind ch queue topic-name {:routing-key routing-key})
+     (kehaar.core/rabbit=>async ch queue message-channel options timeout)
+     ch)))
 
 (defn outgoing-events-channel
   "Wire up a queue listening to a channel for events.
@@ -85,8 +90,12 @@
   ([connection queue-name options in-channel out-channel]
    (incoming-service connection "" queue-name options in-channel out-channel false))
   ([connection exchange queue-name options in-channel out-channel ignore-no-reply-to]
+   (incoming-service connection exchange queue-name options in-channel out-channel ignore-no-reply-to nil))
+  ([connection exchange queue-name options in-channel out-channel ignore-no-reply-to prefetch-limit]
    (let [ch (langohr.channel/open connection)]
      (langohr.queue/declare ch queue-name options)
+     (when prefetch-limit
+       (lb/qos ch prefetch-limit))
      (kehaar.core/rabbit=>async ch queue-name in-channel)
      (kehaar.core/async=>rabbit-with-reply-to out-channel ch exchange ignore-no-reply-to)
      ch)))
