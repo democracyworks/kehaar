@@ -1,6 +1,6 @@
 # Change Log
 
-## Changes between Kehaar 0.7.2 and HEAD
+## Changes between Kehaar 0.7.2 and 0.8.0
 
 ### kehaar.configured
 
