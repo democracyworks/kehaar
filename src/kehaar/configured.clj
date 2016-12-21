@@ -204,14 +204,17 @@ Valid keys for the `incoming-event-options` are:
 * `:exchange`: The name of the exchange. (optional, default `\"\"`)
 * `:prefetch-limit`: The number of messages to prefetch from the
   queue. (optional, default 1).
+* `:threads`: The number of threads to run, each listening for and
+  handling events. (optional, default 10)
 * `:timeout`: The number of milliseconds to wait for a message being
   accepted for processing before nacking. (optional, default 1000)"
   [connection
    {:keys [queue queue-options exchange routing-key timeout f
-           prefetch-limit]
+           prefetch-limit threads]
     :or {exchange default-exchange
          prefetch-limit default-prefetch-limit
          queue-options default-queue-options
+         threads wire-up/default-thread-count
          timeout default-timeout}}]
 
   (require-ns f)
@@ -224,7 +227,7 @@ Valid keys for the `incoming-event-options` are:
                                                    channel
                                                    timeout
                                                    prefetch-limit)]
-    (wire-up/start-event-handler! channel (find-var f))
+    (wire-up/start-event-handler! channel (find-var f) threads)
 
     {:rabbit-channel rabbit-ch
      :async-channels {:in channel}}))
