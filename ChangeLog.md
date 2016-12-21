@@ -1,6 +1,6 @@
 # Change Log
 
-## Changes between Kehaar 0.8.0 and HEAD
+## Changes between Kehaar 0.8.0 and 0.8.1
 
 Added thread count option to `init-incoming-event!`.
 
