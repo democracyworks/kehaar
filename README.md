@@ -13,9 +13,10 @@ channels to rabbitmq. `kehaar.core` is a low-level
 interface. `kehaar.wire-up` is a level above. And finally,
 `kehaar.configured` is above that.
 
-In most cases, the `kehaar.configured` namespace and
-`kehaar.wire-up/async->fn` should be all you need to set up services
-and events.
+In most cases, the `kehaar.configured` namespace,
+`kehaar.wire-up/async->fn`, and
+`kehaar.wire-up/async->fire-and-forget-fn` should be all you need to
+set up services and events.
 
 ### kehaar.configured
 
@@ -60,21 +61,21 @@ You'll need to declare it.
 Then you can create a function that "calls" that service, like so:
 
 ```clojure
-(def process (wire-up/async->fn process-channel))
+(def process (wire-up/async->fire-and-forget-fn process-channel))
 ```
 
-The returned function, when called, will return a core.async channel
-that will eventually contain the result. If you're chaining up
-services, this channel can be returned from a handler as well, letting
-you chain async calls. The returned function takes a single argument,
-which must be some edenizable value (including `nil`).
+The returned function takes a single argument, which must be some
+edenizable value (including `nil`) which will be passed to the
+external service via the configured queue. The returned function's
+return value is unspecified and should not be used.
 
 Some notes:
 
-* For "fire-and-forget" semantics, set `:response` to `false` in the
-  options map.
+* For "RPC" semantics, set `:response` to `true` in the options map
+  and use `wire-up/async->fn` instead, whcih will return a core.async
+  channel that will eventually contain the result.
 * If the service provides a stream of responses for each request, set
-  `:response` to `:streaming`.
+  `:response` to `:streaming` and use `wire-up/async->fn`.
 
 ##### You want to make a query-response service.
 
