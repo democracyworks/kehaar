@@ -116,8 +116,8 @@
    (async=>rabbit channel rabbit-channel "" queue))
   ([channel rabbit-channel exchange queue]
    (go-handler [{:keys [message metadata]} channel]
-               (lb/publish rabbit-channel exchange queue (pr-str message)
-                           metadata))))
+     (lb/publish rabbit-channel exchange queue (pr-str message)
+                 metadata))))
 
 (defn async=>rabbit-with-reply-to
   "Forward all messages on channel to the RabbitMQ queue specified in
@@ -200,9 +200,9 @@
                                :auto-delete true
                                :durable true})
               return-listener (lb/return-listener
-                                (fn [reply-code reply-text exchange routing-key
-                                     properties body]
-                                  (reset! stream? false)))]
+                               (fn [reply-code reply-text exchange routing-key
+                                    properties body]
+                                 (reset! stream? false)))]
           ;; add return listener
           (.addReturnListener ch return-listener)
           ;; put queue name on out-channel
