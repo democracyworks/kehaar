@@ -188,49 +188,45 @@
   [connection out-channel f threshold]
   (fn [{:keys [message metadata]}]
     (let [return (f message)
-          size-or-threshold (count (take threshold return))]
-      (if (= threshold size-or-threshold)
-        ;; big
-        ;; create new queue
-        (let [stream? (atom true)
-              ch (langohr.channel/open connection)
-              response-queue (langohr.queue/declare-server-named
-                              ch
-                              {:exclusive false
-                               :auto-delete true
-                               :durable true})
-              return-listener (lb/return-listener
-                               (fn [reply-code reply-text exchange routing-key
-                                    properties body]
-                                 (reset! stream? false)))]
-          ;; add return listener
-          (.addReturnListener ch return-listener)
-          ;; put queue name on out-channel
-          (async/>!! out-channel {:message {::response-queue response-queue}
-                                  :metadata metadata})
+          stream-active? (atom true)]
+      (loop [sent-count 0
+             responses return
+             put-fn (fn [v]
+                      (async/>!! out-channel
+                                 {:message v
+                                  :metadata metadata}))]
+        (cond
+          (empty? responses)            ; we're done
+          (put-fn ::stop)
 
-          ;; publish everything from return onto it
-          ;; maybe on a new thread?
-          (loop [v  (first return)
-                 vs (rest return)]
-            (when @stream?
-              (do (lb/publish ch "" response-queue (pr-str v)
-                              (assoc metadata :mandatory true))
-                  (when (seq vs)
-                    (recur (first vs) (rest vs))))))
-          (when @stream?
-            (lb/publish ch "" response-queue (pr-str ::stop)
-                        (assoc metadata :mandatory true))))
+          (= sent-count threshold)      ; set up bespoke queue and start using it
+          (let [ch (langohr.channel/open connection)
+                response-queue (langohr.queue/declare-server-named
+                                ch
+                                {:exclusive false
+                                 :auto-delete true
+                                 :durable false})
+                return-listener (lb/return-listener
+                                 (fn [reply-code reply-text exchange routing-key
+                                      properties body]
+                                   (reset! stream-active? false)))
+                put-fn (fn [v]
+                         (when @stream-active?
+                           (lb/publish ch "" response-queue (pr-str v)
+                                       (assoc metadata :mandatory true))))]
+            ;; add return listener
+            (.addReturnListener ch return-listener)
 
-        ;; small
-        (do
-          ;; put "the results are going to come on this channel message"
-          (async/>!! out-channel {:message {::inline size-or-threshold}
-                                  :metadata metadata})
-          ;; put each return value
-          (doseq [v return]
-            (async/>!! out-channel {:message v
-                                    :metadata metadata}))
+            (async/>!! out-channel {:message {::response-queue response-queue}
+                                    :metadata metadata})
 
-          (async/>!! out-channel {:message ::stop
-                                  :metadata metadata}))))))
+            (put-fn (first responses))
+            (recur (inc sent-count) (rest responses) put-fn))
+
+          @stream-active?      ; send the response
+          (do
+            (put-fn (first responses))
+            (recur (inc sent-count) (rest responses) put-fn))
+
+          :else                         ; client closed the channel, stop sending
+          (log/debug "Client closed streaming channel"))))))
