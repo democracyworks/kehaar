@@ -266,7 +266,7 @@
 
     {:rabbit-channel rabbit-ch}))
 
-(def outgoing-job-channel-initialized?
+(def outgoing-jobs-initialized?
   (atom false))
 
 (defn init-outgoing-job!
@@ -294,12 +294,12 @@
         outgoing-ch (langohr.channel/open connection)]
     (lq/declare outgoing-ch queue queue-options)
     (kehaar.core/async=>rabbit channel-val outgoing-ch exchange queue)
-    (if-not @outgoing-job-channel-initialized?
+    (if-not @outgoing-jobs-initialized?
       (let [response-ch (langohr.channel/open connection)
             response-queue (lq/declare-server-named response-ch)
             worker-ch (langohr.channel/open connection)
             worker-queue (lq/declare-server-named response-ch)]
-        (reset! outgoing-job-channel-initialized? true)
+        (reset! outgoing-jobs-initialized? true)
 
         (lb/qos response-ch 1)
         (lq/bind response-ch
