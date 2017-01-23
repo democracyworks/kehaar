@@ -42,7 +42,8 @@
                 {::routing-key routing-key}})))
 
 (defn async=>rabbit
-  "A jobs-specific async=>rabbit for job handlers."
+  "A jobs-specific async=>rabbit for job handlers that publishes
+  a ::complete message once the channel is closed."
   [chan rabbit-ch exchange routing-key]
   (async/go-loop []
     (let [{:keys [:message :metadata] :as ch-message} (async/<! chan)]

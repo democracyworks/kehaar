@@ -36,7 +36,11 @@ clean them all up.
 
 #### Examples
 
-Assuming that a rabbitmq connection is available as `connection`.
+> All examples are exercised by the example project. See
+> example/README.md for details.
+
+The following assumes that a rabbitmq connection is available as
+`connection`.
 
 Some typical patterns:
 
