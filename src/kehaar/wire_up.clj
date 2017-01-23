@@ -83,6 +83,10 @@
     threads)))
 
 (defn start-jobs-handler!
+  "Start new threads that listen on in-channel, calling f for each
+  message. f must be a function of 3 arguments: a core.async channel
+  to send responses on, the routing-key of the job, and the message
+  received."
   [rabbit-channel in-chan f threads]
   (dotimes [n threads]
     (async/thread
