@@ -294,7 +294,7 @@
         outgoing-ch (langohr.channel/open connection)]
     (lq/declare outgoing-ch queue queue-options)
     (kehaar.core/async=>rabbit channel-val outgoing-ch exchange queue)
-    (if-not @outgoing-jobs-initialized?
+    (when-not @outgoing-jobs-initialized?
       (let [response-ch (langohr.channel/open connection)
             response-queue (lq/declare-server-named response-ch)
             worker-ch (langohr.channel/open connection)
@@ -333,8 +333,8 @@
                               {:keys [::jobs/routing-key]} m]
                           (when (get @jobs/jobs routing-key)
                             (jobs/add-worker! routing-key))))
-                      {:auto-ack true}))
-      {:rabbit-channel outgoing-ch})))
+                      {:auto-ack true})))
+    {:rabbit-channel outgoing-ch}))
 
 (defn init-incoming-job!
   "Initializes a service that accepts messages on a queue and will
