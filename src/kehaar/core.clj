@@ -178,6 +178,26 @@
         (async/>!! out-channel {:message return
                                 :metadata metadata})))))
 
+(defn read-port?
+  "Is val a core.async channel? (At least in terms of being able to be
+  read from with <!!)"
+  [val]
+  (satisfies? clojure.core.async.impl.protocols/ReadPort val))
+
+(defn async->lazy-seq
+  "Creates a lazy-seq from a core.async channel."
+  [c]
+  (lazy-seq
+   (if-let [val (async/<!! c)]
+     (cons val (async->lazy-seq c))
+     nil)))
+
+(defn to-seq [val]
+  (cond
+    (read-port? val) (async->lazy-seq val)
+    (sequential? val) val
+    :else (throw (ex-info "Argument not coercable to seq" {:val val}))))
+
 (defn streaming-responder-fn
   "Create a function that takes map of message and metadata, calls `f`
   on message, and redirects the return to `out-channel`. If the size
@@ -187,7 +207,7 @@
   the response sequence is exhausted."
   [connection out-channel f threshold]
   (fn [{:keys [message metadata]}]
-    (let [return (f message)
+    (let [return (to-seq (f message))
           stream-active? (atom true)]
       (loop [sent-count 0
              responses return
