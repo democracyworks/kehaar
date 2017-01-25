@@ -143,7 +143,7 @@ Some notes:
   async channel to put results on, the routing key for the job, and
   the message from the process that requested the job. The message has
   been serialized and deserialized as EDN. So expect any kind of
-  serializable value.
+  serializable value. The async channel must be closed when finished.
 
 ##### You want to subcontract work from one job service to another
 

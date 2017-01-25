@@ -350,7 +350,8 @@
   be a function of three arguments, which will be a core.async a
   channel to put results on, the routing-key for the job that may be
   passed to further job services, and a serializable Clojure
-  value. (required)
+  value. The function must close the core.async channel when
+  finished. (required)
   * `:queue`: The name of the queue that will be bound to the
   routing-key. (required)
   * `:queue-options`: The options map passed to `langohr.queue/declare`
