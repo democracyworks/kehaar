@@ -294,12 +294,11 @@
         outgoing-ch (langohr.channel/open connection)]
     (lq/declare outgoing-ch queue queue-options)
     (kehaar.core/async=>rabbit channel-val outgoing-ch exchange queue)
-    (when-not @outgoing-jobs-initialized?
+    (when (compare-and-set! outgoing-jobs-initialized? false true)
       (let [response-ch (langohr.channel/open connection)
             response-queue (lq/declare-server-named response-ch)
             worker-ch (langohr.channel/open connection)
             worker-queue (lq/declare-server-named response-ch)]
-        (reset! outgoing-jobs-initialized? true)
 
         (lb/qos response-ch 1)
         (lq/bind response-ch
@@ -365,8 +364,7 @@
                :or {prefetch-limit default-prefetch-limit
                     queue-options default-queue-options
                     threads wire-up/default-thread-count}}]
-  (when-not @jobs/workers-chan-initialized?
-    (reset! jobs/workers-chan-initialized? true)
+  (when (compare-and-set! jobs/workers-chan-initialized? false true)
     (let [work-ch (lchan/open connection)]
       (kehaar.core/async=>rabbit jobs/workers-chan
                                  work-ch
