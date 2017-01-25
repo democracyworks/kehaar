@@ -1,5 +1,10 @@
 # Change Log
 
+## Changes between Kehaar 0.8.1 and 0.9.0
+
+Added jobs. See README, kehaar.jobs, and kehaar.configured for
+details.
+
 ## Changes between Kehaar 0.8.0 and 0.8.1
 
 Added thread count option to `init-incoming-event!`.
