@@ -98,8 +98,10 @@ Some notes:
   deserialized as EDN. So expect any kind of serializable value,
   including `nil`.
 * If `:response` is `:streaming`, then `handler-function` should
-  return a sequence, which probably should be lazy. Each value in the
-  sequence will be returned to the client in order.
+  return a sequence, which probably should be lazy, or a core.async
+  channel, which must be closed when there are no more values. Each
+  value in the sequence or on the channel will be returned to the
+  client in order.
 * Incoming messages are nacked if the thread is taking too long to
   process the messages. This allows different instances of the service
   to process those messages.

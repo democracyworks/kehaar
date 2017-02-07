@@ -123,8 +123,8 @@ including `nil`.
 
 `streaming-handler-function` should be a function of a single
 argument, like `handler-function`, but should always return a sequence
-(lazy, if you like). Each value in the sequence will be returned to
-the client in order.
+(lazy, if you like) or a core.async channel. Each value in the
+sequence or on the channel will be returned to the client in order.
 
 `wire-up/start-responder!` and `wire-up/start-streaming-responder!`
 all take an extra optional argument for the number of threads to take
