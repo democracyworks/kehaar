@@ -72,8 +72,9 @@
   function of one argument, which will be a serializable Clojure
   value. For `:streaming` responses, it must return a sequence with
   the values to stream, or a core.async channel to stream values
-  from. For `:streaming` or `true` responses, values must be
-  serializable Clojure values. (required)
+  from. When returning a core.async channel, you must close the
+  channel when there are no more values. For `:streaming` or `true`
+  responses, values must be serializable Clojure values. (required)
   * `:queue`: The name of the queue to listen for requests on. (required)
   * `:queue-options`: The options map passed to `langohr.queue/declare`
   for the queue. (optional, default {:auto-delete false :durable true
