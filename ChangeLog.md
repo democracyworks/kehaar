@@ -1,5 +1,19 @@
 # Change Log
 
+## Changes between Kehaar 0.9.0 and 0.10.0
+
+A couple of improvements to streaming:
+
+* A streaming handler function may now return a core.async channel
+  that results will be placed on.
+* Streaming responders now send the first `threshold` values over the
+  shared reply queue, switching over to a bespoke queue after
+  `threshold` + 1 values.
+
+Due to changes in the messages that coordinate streaming behind the
+scenes, both the service producing streaming responses and its
+consumers must use Kehaar >= 0.10.0.
+
 ## Changes between Kehaar 0.8.1 and 0.9.0
 
 Added jobs. See README, kehaar.jobs, and kehaar.configured for
