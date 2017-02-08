@@ -67,22 +67,24 @@
   * `incoming-service-options`: A map defining the service
 
   Valid keys for the `incoming-service-options` are:
-  * `:f`: A fully qualified symbol for the function that will be called
-  for every message received on the queue. It must be a function of
-  one argument, which will be a serializable Clojure value. For
-  `:streaming` responses, it must return a sequence. For `:streaming`
-  or `true` responses, it must return a serializable Clojure
-  value. (required)
+  * `:f`: A fully qualified symbol for the function that will be
+  called for every message received on the queue. It must be a
+  function of one argument, which will be a serializable Clojure
+  value. For `:streaming` responses, it must return a sequence with
+  the values to stream, or a core.async channel to stream values
+  from. When returning a core.async channel, you must close the
+  channel when there are no more values. For `:streaming` or `true`
+  responses, values must be serializable Clojure values. (required)
   * `:queue`: The name of the queue to listen for requests on. (required)
   * `:queue-options`: The options map passed to `langohr.queue/declare`
   for the queue. (optional, default {:auto-delete false :durable true
   :exclusive false})
   * `:response`: How to respond. Key should be `nil`, `:streaming` or
   `true`. `nil` means don't return the result of the function to the
-  caller. `:streaming` means the function will return a sequence, the
-  values of which will be returned to the caller one by one. `true`
-  means return the result of the function in one message back to the
-  caller. (optional, default `nil`)
+  caller. `:streaming` means the function will return a sequence or a
+  core.async channel, the values from which will be returned to the
+  caller one by one. `true` means return the result of the function in
+  one message back to the caller. (optional, default `nil`)
   * `:exchange`: The name of the exchange. (optional, default `\"\"`)
   * `:prefetch-limit`: The number of messages to prefetch from the
   queue. (optional, default 1).

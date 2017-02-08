@@ -231,10 +231,6 @@
               (swap! pending-calls dissoc correlation-id))
 
             (and (map? message)
-                 (:kehaar.core/inline message))
-            nil                         ; do nothing
-
-            (and (map? message)
                  (:kehaar.core/response-queue message))
             (if-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
               (let [message-channel (async/chan 1 (map :message))
@@ -254,7 +250,9 @@
                       (async/close! return-channel)
                       (if (async/>! return-channel msg)
                         (recur)
-                        (async/close! message-channel))))))
+                        (do
+                          (swap! pending-calls dissoc correlation-id)
+                          (async/close! message-channel)))))))
               (do
                 (log/info (format "Deleting queue %s" (:kehaar.core/response-queue message)))
                 (langohr.queue/delete ch (:kehaar.core/response-queue message))))

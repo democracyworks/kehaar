@@ -215,33 +215,35 @@
           conn (rmq/connect rmq-config)]
       (start-streaming-responder! conn in-ch out-ch range 10 1)
       (async/>!! in-ch {:message 4})
-      (testing "sends a message saying the results will be inline"
-        (is (get-in (async/<!! out-ch) [:message :kehaar.core/inline])))
-      (testing "then sends the responses on that channel")
+      (testing "sends the responses on that channel")
       (is (= 0 (:message (async/<!! out-ch))))
       (is (= 1 (:message (async/<!! out-ch))))
       (is (= 2 (:message (async/<!! out-ch))))
       (is (= 3 (:message (async/<!! out-ch))))))
-  (testing "streams responses on a bespoke queue if size is above threshold"
+  (testing "streams responses on a bespoke queue once size is above threshold"
     (let [in-ch (async/chan 1)
           out-ch (async/chan 10)
           conn (rmq/connect rmq-config)]
       (start-streaming-responder! conn in-ch out-ch range 10 1)
       (async/>!! in-ch {:message 100})
-      (testing "sends a message saying the results will be on a new queue"
-        (let [initial-response (async/<!! out-ch)
-              rabbit-queue (get-in initial-response [:message :kehaar.core/response-queue])]
+      (testing "sends the first `threshold` messages on the out channel"
+        (doseq [n (range 10)]
+          (is (= n (:message (async/<!! out-ch))))))
+      (testing "then sends a message pointing to a bespoke queue"
+        (let [bespoke-response (async/<!! out-ch)
+              rabbit-queue (get-in bespoke-response [:message :kehaar.core/response-queue])]
           (is rabbit-queue)
-          (testing "sends each response on the bespoke queue"
-            (doseq [n (range 100)]
+          (testing "then sends the rest of the messages on the bespoke queue"
+            (doseq [n (range 10 100)]
               (is (= (str n) (-> conn
                                  lch/open
                                  (lb/get rabbit-queue)
                                  (nth 1)
                                  (String. "UTF-8"))))))
-          (testing "then sends a stop message"
-            (is (= ":kehaar.core/stop" (-> conn
-                                           lch/open
-                                           (lb/get rabbit-queue)
-                                           (nth 1)
-                                           (String. "UTF-8"))))))))))
+          (testing "then sends stop"
+            (is (= ":kehaar.core/stop"
+                   (-> conn
+                       lch/open
+                       (lb/get rabbit-queue)
+                       (nth 1)
+                       (String. "UTF-8"))))))))))
