@@ -1,6 +1,7 @@
 (ns kehaar.wire-up
   (:require
    [langohr.basic :as lb]
+   [langohr.core]
    [langohr.queue]
    [langohr.channel]
    [langohr.exchange]
@@ -210,13 +211,16 @@
   ([connection exchange queue-name queue-options timeout channel]
    (let [ch (langohr.channel/open connection)]
      (langohr.queue/declare ch queue-name queue-options)
-     (let [response-queue (langohr.queue/declare-server-named
-                           ch
+     (let [shared-response-ch (langohr.channel/open connection)
+           response-queue (langohr.queue/declare-server-named
+                           shared-response-ch
                            {:exclusive true
                             :auto-delete true})
            pending-calls (atom {})
            <response-channel (async/chan)
            >request-channel (async/chan 1000)]
+
+       (lb/qos shared-response-ch 1)
 
        ;; start listening for responses
        (kehaar.core/rabbit=>async ch response-queue <response-channel
@@ -233,10 +237,12 @@
             (and (map? message)
                  (:kehaar.core/response-queue message))
             (if-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
-              (let [message-channel (async/chan 1 (map :message))
+              (let [response-ch (langohr.channel/open connection)
+                    message-channel (async/chan 1 (map :message))
                     response-queue (:kehaar.core/response-queue message)]
+                (lb/qos response-ch 1)
                 (kehaar.core/rabbit=>async
-                 ch
+                 response-ch
                  response-queue
                  message-channel
                  {:exclusive true}
@@ -251,6 +257,8 @@
                       (if (async/>! return-channel msg)
                         (recur)
                         (do
+                          (when-not (langohr.core/closed? response-ch)
+                            (langohr.core/close response-ch))
                           (swap! pending-calls dissoc correlation-id)
                           (async/close! message-channel)))))))
               (do
