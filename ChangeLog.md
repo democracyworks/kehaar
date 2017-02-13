@@ -1,5 +1,10 @@
 # Change Log
 
+## Changes between Kehaar 0.10.0 and 0.10.1
+
+Added prefetch limits to rabbit channels created when setting up
+streaming external services.
+
 ## Changes between Kehaar 0.9.0 and 0.10.0
 
 A couple of improvements to streaming:
