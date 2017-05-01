@@ -6,6 +6,7 @@
    [langohr.channel]
    [langohr.exchange]
    [kehaar.core]
+   [kehaar.response-queues :as rq]
    [kehaar.jobs :as jobs]
    [clojure.tools.logging :as log]
    [clojure.core.async :as async]))
@@ -153,6 +154,9 @@
            <response-channel (async/chan)
            >request-channel (async/chan 1000)]
 
+       ;; add response-queue to response-queues map
+       (rq/set-response-queue! queue-name response-queue)
+
        ;; start listening for responses
        (kehaar.core/rabbit=>async ch response-queue <response-channel
                                   {:exclusive true} 1000)
@@ -172,7 +176,8 @@
           (swap! pending-calls assoc correlation-id return-channel)
           (async/>! >request-channel {:message message
                                       :metadata {:correlation-id correlation-id
-                                                 :reply-to response-queue
+                                                 :reply-to (rq/get-response-queue
+                                                            queue-name)
                                                  :mandatory true}})
           (async/go
             (async/<! (async/timeout timeout))
@@ -221,6 +226,9 @@
            >request-channel (async/chan 1000)]
 
        (lb/qos shared-response-ch 1)
+
+       ;; add response-queue to response-queues map
+       (rq/set-response-queue! queue-name response-queue)
 
        ;; start listening for responses
        (kehaar.core/rabbit=>async ch response-queue <response-channel
@@ -281,7 +289,8 @@
                                                      :timeout timeout-ch})
           (async/>! >request-channel {:message message
                                       :metadata {:correlation-id correlation-id
-                                                 :reply-to response-queue
+                                                 :reply-to (rq/get-response-queue
+                                                            queue-name)
                                                  :mandatory true}})
 
           (async/go

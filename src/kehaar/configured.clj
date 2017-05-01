@@ -2,6 +2,7 @@
   (:require [kehaar.wire-up :as wire-up]
             [kehaar.jobs :as jobs]
             [kehaar.core]
+            [kehaar.response-queues :as rq]
             [clojure.core.async :as async]
             [clojure.tools.logging :as log]
             [langohr.core :as rmq]
@@ -426,6 +427,16 @@
         configuration
         states (atom [])]
     (init-exchange! connection {:exchange jobs/kehaar-exchange})
+
+    (rmq/on-queue-recovery
+     connection
+     (fn [^String old-name ^String new-name]
+       (when-let [q (rq/get-queue old-name)]
+         (log/info "RabbitMQ connection recovery."
+                   "Renamed response queue for" q
+                   "from" old-name "to" new-name)
+         (rq/set-response-queue! q new-name))))
+
     (doseq [exchange event-exchanges]
       (swap! states conj (init-exchange! connection exchange)))
     (doseq [incoming-service incoming-services]
