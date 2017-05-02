@@ -1,5 +1,11 @@
 # Change Log
 
+## Changes between Kehaar 0.10.1 and 0.10.2
+
+When RabbitMQ renames response queues kehaar sets up for external
+services after a node restart, kehaar now reacts, ensuring that future
+calls to the external service use the new name for the reply-to queue.
+
 ## Changes between Kehaar 0.10.0 and 0.10.1
 
 Added prefetch limits to rabbit channels created when setting up
