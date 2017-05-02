@@ -1,5 +1,9 @@
 # Change Log
 
+## Changes between Kehaar 0.10.2 and 0.10.3
+
+A Clojure 1.9-friendly `ns` form in kehaar.response-queues.
+
 ## Changes between Kehaar 0.10.1 and 0.10.2
 
 When RabbitMQ renames response queues kehaar sets up for external
