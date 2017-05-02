@@ -1,6 +1,6 @@
 (ns kehaar.response-queues
-  (import [org.apache.commons.collections4.bidimap TreeBidiMap]
-          [clojure.lang Associative ILookup IMapEntry]))
+  (:import [org.apache.commons.collections4.bidimap TreeBidiMap]
+           [clojure.lang Associative ILookup IMapEntry]))
 
 (defprotocol IReverseLookup
   (get-key [this val]))
