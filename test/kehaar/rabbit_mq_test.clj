@@ -30,7 +30,7 @@
     (async=>rabbit chan ch rabbit-queue)
     (rabbit=>async ch rabbit-queue response-chan)
     (bounded>!! chan {:message message
-                     :metadata {}} 100)
+                      :metadata {}} 100)
     (is (= message (:message (bounded<!! response-chan 500))))
     (Thread/sleep 500) ; wait for ack before closing channel
     (rmq/close ch)
