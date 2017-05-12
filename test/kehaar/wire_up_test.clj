@@ -169,7 +169,9 @@
           response-fn (async->fn c)
           message {:test true}
           response-channel (response-fn message)]
-      (is (= [response-channel message] (async/<!! c)))))
+      (is (= [response-channel message] (async/<!! c))))))
+
+(deftest ^:rabbit-mq async->fn-rmq-test
   (testing "response is nil when no response to service past timeout"
     (let [timeout   2000
           conn      (rmq/connect rmq-config)
