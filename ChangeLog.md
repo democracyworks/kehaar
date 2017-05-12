@@ -1,5 +1,11 @@
 # Change Log
 
+## Changes between Kehaar 0.10.3 and 0.10.4
+
+`kehaar.rabbitmq/connect-with-retries` can now retry connection failures
+that throw `java.util.concurrent.TimeoutException` exceptions in addition to
+the `java.net.ConnectException` exceptions it has always been able to retry.
+
 ## Changes between Kehaar 0.10.2 and 0.10.3
 
 A Clojure 1.9-friendly `ns` form in kehaar.response-queues.
