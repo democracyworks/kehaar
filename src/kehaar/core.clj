@@ -5,7 +5,8 @@
             [langohr.consumers :as lc]
             [langohr.queue :as lq]
             [clojure.tools.logging :as log]
-            [kehaar.async :refer [bounded>!!]]))
+            [kehaar.async :refer [bounded>!!]])
+  (:import [java.util.concurrent Semaphore]))
 
 (defn read-payload
   "Unsafely read a byte array as edn."
@@ -147,17 +148,21 @@
 
 (defn thread-handler
   [channel f threads]
-  (dotimes [_ threads]
-    (async/thread
+  (async/thread
+    (let [semaphore (Semaphore. threads)]
       (loop []
+        (.acquire semaphore)
         (let [ch-message (async/<!! channel)]
           (if (nil? ch-message)
             (log/trace "Kehaar: thread handler is closed.")
             (do
-              (try
-                (f ch-message)
-                (catch Throwable t
-                  (log/error t "Kehaar: caught exception in thread-handler")))
+              (async/thread
+                (try
+                  (f ch-message)
+                  (catch Throwable t
+                    (log/error t "Kehaar: caught exception in thread-handler"))
+                  (finally
+                    (.release semaphore))))
               (recur))))))))
 
 (defn responder-fn

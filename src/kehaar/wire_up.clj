@@ -9,7 +9,9 @@
    [kehaar.response-queues :as rq]
    [kehaar.jobs :as jobs]
    [clojure.tools.logging :as log]
-   [clojure.core.async :as async]))
+   [clojure.core.async :as async])
+  (:import
+   [java.util.concurrent Semaphore]))
 
 (defn incoming-events-channel
   "Wire up a channel that will receive incoming events that match
@@ -90,9 +92,10 @@
   to send responses on, the routing-key of the job, and the message
   received."
   [rabbit-channel in-chan f threads]
-  (dotimes [n threads]
-    (async/thread
+  (async/thread
+    (let [semaphore (Semaphore. threads)]
       (loop []
+        (.acquire semaphore)
         (let [ch-message (async/<!! in-chan)
               {:keys [message]} ch-message
               {:keys [::jobs/routing-key ::jobs/message]} message]
@@ -108,10 +111,13 @@
                                   rabbit-channel
                                   jobs/kehaar-exchange
                                   routing-key)
-              (try
-                (f out-chan routing-key message)
-                (catch Throwable t
-                  (log/error t "Kehaar: caught exception in job handler")))
+              (async/thread
+                (try
+                  (f out-chan routing-key message)
+                  (catch Throwable t
+                    (log/error t "Kehaar: caught exception in job handler"))
+                  (finally
+                    (.release semaphore))))
               (recur))))))))
 
 (defn incoming-service
