@@ -1,5 +1,13 @@
 # Change Log
 
+## Changes between Kehaar 0.10.4 and 0.10.5
+
+Updated dependencies:
+
+* clojure from 1.7.0 to 1.8.0
+* core.async from 0.2.385 to 0.3.443
+* langohr from 3.2.0 to 3.7.0
+
 ## Changes between Kehaar 0.10.3 and 0.10.4
 
 `kehaar.rabbitmq/connect-with-retries` can now retry connection failures
