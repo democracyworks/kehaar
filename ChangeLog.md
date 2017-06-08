@@ -1,5 +1,26 @@
 # Change Log
 
+## Changes between Kehaar 0.10.5 and 0.11.0
+
+Rather than spinning up the maximum number of desired processing threads for
+each handler, kehaar now spins up threads as needed for the work coming in. It
+then allows them to be released if the workload decreases for a time. It still
+respects the thread count param and will never spin up more threads than that.
+This should prevent leaving idle threads hanging around forever just because
+they might be needed for workload spikes.
+
+EDN reading and writing is now safer. Kehaar encodes all values going over
+RabbitMQ into EDN using `clojure.core/pr-str` and then calls
+`clojure.edn/read-string` on them when coming off of the queue on the other
+side. In 0.11.0, kehaar will now convert instances of `java.util.regex.Pattern`
+to their string representations before encoding them into EDN. This is
+necessary because `clojure.edn/read-string` will choke on the `#"..."` form
+they otherwise get encoded as. On the reading side, instead of
+`clojure.edn/read-string`'s behavior of throwing exceptions on unknown tags,
+kehaar will now simply read in the tagged values as is. This should prevent
+exceptions coming from kehaar because of regexes or tagged representations
+without registered data readers in your payloads.
+
 ## Changes between Kehaar 0.10.4 and 0.10.5
 
 Updated dependencies:
