@@ -2,13 +2,14 @@
   (:require [clojure.test :refer :all]
             [kehaar.core :refer :all]
             [clojure.core.async :as async]
-            [kehaar.async :refer [bounded<!! bounded>!!]]))
+            [kehaar.async :refer [bounded<!! bounded>!!]]
+            [kehaar.edn :as edn]))
 
 (defn edn-bytes
   "Returns a byte array of the edn representation of x."
   [x]
   (->> x
-       pr-str
+       edn/pr-str
        (map int)
        byte-array))
 
