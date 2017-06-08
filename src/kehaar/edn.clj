@@ -7,8 +7,9 @@
 
 (defn sanitize
   "Replaces regexes in value `v` with their string representation so that `v`
-  can be EDN encoded. This would be unnecessary if _someone_ had done their
-  job:
+  can be EDN encoded.
+
+  Maybe it won't be needed forever:
   https://github.com/clojure/clojure/blob/c6756a8bab137128c8119add29a25b0a88509900/src/jvm/clojure/lang/EdnReader.java#L53"
   [v]
   (walk/postwalk
