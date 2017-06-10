@@ -1,7 +1,7 @@
 (ns kehaar.jobs
   (:require [clojure.core.async :as async]
             [langohr.basic :as lb]
-            [kehaar.edn :as edn]))
+            [paradise.edn :as edn]))
 
 (def ^:const kehaar-exchange "kehaar")
 
@@ -52,14 +52,14 @@
         (lb/publish rabbit-ch
                     exchange
                     routing-key
-                    (edn/pr-str {::message ::complete
-                                 ::routing-key routing-key})
+                    (edn/write-string {::message ::complete
+                                       ::routing-key routing-key})
                     {})
         (do
           (lb/publish rabbit-ch
                       exchange
                       routing-key
-                      (edn/pr-str message)
+                      (edn/write-string message)
                       metadata)
           (recur))))))
 

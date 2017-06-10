@@ -3,13 +3,13 @@
             [kehaar.core :refer :all]
             [clojure.core.async :as async]
             [kehaar.async :refer [bounded<!! bounded>!!]]
-            [kehaar.edn :as edn]))
+            [paradise.edn :as edn]))
 
 (defn edn-bytes
   "Returns a byte array of the edn representation of x."
   [x]
   (->> x
-       edn/pr-str
+       edn/write-string
        (map int)
        byte-array))
 

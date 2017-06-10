@@ -7,7 +7,8 @@
                  [org.clojure/core.async "0.3.443"]
                  [com.novemberain/langohr "3.7.0"]
                  [org.apache.commons/commons-collections4 "4.1"]
-                 [org.clojure/tools.logging "0.3.1"]]
+                 [org.clojure/tools.logging "0.3.1"]
+                 [paradise "0.1.0-SNAPSHOT"]]
   :test-selectors {:default (complement :rabbit-mq)
                    :rabbit-mq :rabbit-mq
                    :all (constantly true)}
