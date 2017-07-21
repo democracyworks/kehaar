@@ -13,7 +13,7 @@
   (async/close! out-chan))
 
 (def config
-  {:incoming-jobs [{:f 'kehaar-example.jobs.threes/job-handler
+  {:incoming-jobs [{:f job-handler
                     :queue "do-fizz"}]})
 
 (defn setup []
