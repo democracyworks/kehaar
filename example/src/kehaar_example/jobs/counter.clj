@@ -23,9 +23,9 @@
   (async/close! out-chan))
 
 (def config
-  {:incoming-jobs [{:f 'kehaar-example.jobs.counter/job-handler
+  {:incoming-jobs [{:f job-handler
                     :queue "counting-job"}]
-   :outgoing-jobs [{:jobs-chan 'kehaar-example.jobs.counter/three-subjob
+   :outgoing-jobs [{:jobs-chan three-subjob
                     :queue "do-fizz"}]})
 
 (defn setup []

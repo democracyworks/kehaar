@@ -26,7 +26,7 @@
      {:incoming-services
       [{:response :streaming
         :queue "countdown"
-        :f 'kehaar-example.streaming.producer/countdown
+        :f countdown
         :threshold 5}]}))
   (log/info "Producer ready!")
   (.join (Thread/currentThread)))

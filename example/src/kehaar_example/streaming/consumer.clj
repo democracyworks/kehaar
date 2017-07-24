@@ -17,7 +17,7 @@
       [{:response :streaming
         :queue "countdown"
         :timeout 5000
-        :channel 'kehaar-example.streaming.consumer/get-countdown-ch}]}))
+        :channel get-countdown-ch}]}))
 
   (log/info "Consumer making a request!")
   (doseq [n [10 10 3 3 10]]

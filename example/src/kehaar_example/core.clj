@@ -20,26 +20,6 @@
 ;;; read off the topic exchange.
 (def outgoing-fib-events (async/chan 100))
 
-(def config
-  {:incoming-services [{:queue "calculate-fib"
-                        :f 'kehaar-example.core/fib
-                        :response true}]
-   :external-services [{:queue "calculate-fib"
-                        :timeout 5000
-                        :channel 'kehaar-example.core/get-fib-ch
-                        :response true}]
-   :incoming-events [{:queue "fibs-incoming"
-                      :exchange "events"
-                      :routing-key "fib-event"
-                      :timeout 100
-                      :f 'kehaar-example.core/log-fib-event}]
-   :outgoing-events [{:exchange "events"
-                      :routing-key "fib-event"
-                      :channel 'kehaar-example.core/outgoing-fib-events}]
-   :event-exchanges [{:exchange "events"
-                      :type "topic"
-                      :options {:auto-delete true}}]})
-
 ;;; Calculate the nth Fibonacci number. Also puts the result onto the
 ;;; `outgoing-fib-events` channel, which is forwarded to the
 ;;; "fib-event" topic on the "events" exchange.
@@ -52,14 +32,34 @@
        b)
      (recur (dec n) b (+ a b)))))
 
-(defn setup []
-  (let [connection (kehaar-rabbit/connect-with-retries)]
-    (configured/init! connection config)))
-
 ;;; This function logs Fibonacci numbers received through the events
 ;;; exchange.
 (defn log-fib-event [fib-result]
   (log/info "Received event:" fib-result))
+
+(def config
+  {:incoming-services [{:queue "calculate-fib"
+                        :f fib
+                        :response true}]
+   :external-services [{:queue "calculate-fib"
+                        :timeout 5000
+                        :channel get-fib-ch
+                        :response true}]
+   :incoming-events [{:queue "fibs-incoming"
+                      :exchange "events"
+                      :routing-key "fib-event"
+                      :timeout 100
+                      :f log-fib-event}]
+   :outgoing-events [{:exchange "events"
+                      :routing-key "fib-event"
+                      :channel outgoing-fib-events}]
+   :event-exchanges [{:exchange "events"
+                      :type "topic"
+                      :options {:auto-delete true}}]})
+
+(defn setup []
+  (let [connection (kehaar-rabbit/connect-with-retries)]
+    (configured/init! connection config)))
 
 (defn -main [& args]
   (log/info "Starting up...")

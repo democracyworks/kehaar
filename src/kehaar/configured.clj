@@ -23,6 +23,21 @@
     (when-not (find-ns ns')
       (require ns'))))
 
+(defn realize-symbol-or-self
+  "Given a symbol, gets what it names. Otherwise, returns the
+  argument.
+
+  ((realize-symbol-or-self 'clojure.core/inc) 4) ;;=> 5
+  ((realize-symbol-or-self inc) 5)               ;;=> 6"
+  [x]
+  (if (symbol? x)
+    (do
+      (require-ns x)
+      (-> x
+          find-var
+          var-get))
+    x))
+
 (defn init-exchange!
   "Initializes an exchange.
 
@@ -104,10 +119,9 @@
          threads wire-up/default-thread-count
          threshold default-threshold}}]
 
-  (require-ns f)
   (let [in-chan (async/chan)
         out-chan (async/chan)
-        f-var (find-var f)
+        f (realize-symbol-or-self f)
         ignore-no-reply-to? (not response)
         streaming? (= response :streaming)
         rabbit-ch (wire-up/incoming-service connection
@@ -122,12 +136,12 @@
       (wire-up/start-streaming-responder! connection
                                           in-chan
                                           out-chan
-                                          f-var
+                                          f
                                           threshold
                                           threads)
       (wire-up/start-responder! in-chan
                                 out-chan
-                                f-var
+                                f
                                 threads))
     {:rabbit-channel rabbit-ch
      :async-channels {:in in-chan
@@ -167,8 +181,7 @@
          timeout default-timeout
          response nil}}]
 
-  (require-ns channel)
-  (let [channel-val (var-get (find-var channel))
+  (let [channel (realize-symbol-or-self channel)
         rabbit-ch (cond
                     (= response :streaming) (wire-up/streaming-external-service
                                              connection
@@ -176,20 +189,20 @@
                                              queue
                                              queue-options
                                              timeout
-                                             channel-val)
+                                             channel)
                     (not response) (wire-up/external-service-fire-and-forget
                                     connection
                                     exchange
                                     queue
                                     queue-options
-                                    channel-val)
+                                    channel)
                     :else (wire-up/external-service
                            connection
                            exchange
                            queue
                            queue-options
                            timeout
-                           channel-val))]
+                           channel))]
     {:rabbit-channel rabbit-ch}))
 
 (defn init-incoming-event!
@@ -226,8 +239,8 @@
          threads wire-up/default-thread-count
          timeout default-timeout}}]
 
-  (require-ns f)
-  (let [channel (async/chan 100)
+  (let [f (realize-symbol-or-self f)
+        channel (async/chan 100)
         rabbit-ch (wire-up/incoming-events-channel connection
                                                    queue
                                                    queue-options
@@ -236,7 +249,7 @@
                                                    channel
                                                    timeout
                                                    prefetch-limit)]
-    (wire-up/start-event-handler! channel (find-var f) threads)
+    (wire-up/start-event-handler! channel f threads)
 
     {:rabbit-channel rabbit-ch
      :async-channels {:in channel}}))
@@ -259,8 +272,7 @@
    {:keys [exchange routing-key channel]
     :or {exchange default-exchange}}]
 
-  (require-ns channel)
-  (let [out-channel (var-get (find-var channel))
+  (let [out-channel (realize-symbol-or-self channel)
         rabbit-ch (wire-up/outgoing-events-channel
                    connection
                    exchange
@@ -292,11 +304,10 @@
   [connection {:keys [jobs-chan queue queue-options exchange]
                :or {queue-options default-queue-options
                     exchange default-exchange}}]
-  (require-ns jobs-chan)
-  (let [channel-val (var-get (find-var jobs-chan))
+  (let [jobs-chan (realize-symbol-or-self jobs-chan)
         outgoing-ch (langohr.channel/open connection)]
     (lq/declare outgoing-ch queue queue-options)
-    (kehaar.core/async=>rabbit channel-val outgoing-ch exchange queue)
+    (kehaar.core/async=>rabbit jobs-chan outgoing-ch exchange queue)
     (when (compare-and-set! outgoing-jobs-initialized? false true)
       (let [response-ch (langohr.channel/open connection)
             response-queue (lq/declare-server-named response-ch)
@@ -373,8 +384,7 @@
                                  work-ch
                                  jobs/kehaar-exchange
                                  "kehaar-worker")))
-  (require-ns f)
-  (let [f-var (find-var f)
+  (let [f (realize-symbol-or-self f)
         in-chan (async/chan)
         ch (lchan/open connection)]
     (lq/declare ch queue queue-options)
@@ -383,7 +393,7 @@
     (kehaar.core/rabbit=>async ch queue in-chan queue-options 100)
     (wire-up/start-jobs-handler! ch
                                  in-chan
-                                 f-var
+                                 f
                                  threads)
     {:rabbit-channel ch
      :async-channels {:in in-chan}}))

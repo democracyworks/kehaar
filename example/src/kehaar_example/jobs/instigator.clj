@@ -15,7 +15,7 @@
   (jobs/async->job job-request-chan))
 
 (def config
-  {:outgoing-jobs [{:jobs-chan 'kehaar-example.jobs.instigator/job-request-chan
+  {:outgoing-jobs [{:jobs-chan job-request-chan
                     :queue "counting-job"}]})
 
 (defn make-job-handler [id n]

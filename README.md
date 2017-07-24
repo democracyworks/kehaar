@@ -34,6 +34,15 @@ is a collection of all the shutdownable resources created in the
 process, and it may be passed to `kehaar.configured/shutdown!` to
 clean them all up.
 
+##### Specifying funtions and channels
+
+Anywhere a `kehaar.configured` initialzation function expects a
+function or channel, you may pass instead a fully qualified symbol
+naming the function or channel you wish to use. If you do, the
+appropriate namespace will be required and the function or channel
+value will be used. This is useful, for example, if you wish to keep
+your configuration in an edn file.
+
 #### Examples
 
 > All examples are exercised by the example project. See
@@ -60,7 +69,7 @@ You'll need to declare it.
 (kehaar.configured/init-external-service!
  connection
  {:queue "service-works.service.process"
-  :channel 'fully.qualified/process-channel})
+  :channel process-channel})
 ```
 
 Then you can create a function that "calls" that service, like so:
@@ -88,7 +97,7 @@ Some notes:
 (kehaar.configured/init-incoming-service!
  connection
  {:queue "service-works.service.process"
-  :f 'fully.qualified/handler-function})
+  :f handler-function})
 ```
 
 Some notes:
@@ -114,7 +123,7 @@ Some notes:
 ```clojure
 (kehaar.configured/init-outgoing-job!
  connection
- {:jobs-chan 'fully.qualified/job-request-channel
+ {:jobs-chan job-request-channel
   :queue "service.works.service.perform-job"})
 ```
 
@@ -136,7 +145,7 @@ job, but you are unlikely to need it.
 (kehaar.configured/init-incoming-job!
  connection
  {:queue "service.works.service.perform-job"
-  :f 'fully.qualified/handler-function})
+  :f handler-function})
 ```
 
 Some notes:
@@ -152,7 +161,7 @@ Some notes:
 ```clojure
 (kehaar.configured/init-outgoing-job!
  connection
- {:jobs-chan 'fully.qualified/subcontract-channel
+ {:jobs-chan subcontract-channel
   :queue "service.works.service.subcontract-part-of-job"})
 ```
 
@@ -174,7 +183,7 @@ current job, and the message to send.
  {:queue "my-service.events.create-something"
   :exchange "events"
   :routing-key "create-something"
-  :f 'fully.qualified/handler-function})
+  :f handler-function})
 ```
 
 Some notes:
@@ -190,7 +199,7 @@ Some notes:
  connection
  {:exchange "events"
   :routing-key "create-something"
-  :channel 'fully.qualified/created-event-channel})
+  :channel created-event-channel})
 ```
 
 The event messages you send on the channel must be EDN-izable.
