@@ -1,5 +1,11 @@
 # Change Log
 
+## Changes between Kehaar 0.11.0 and 0.11.1
+
+Initialization functions in `kehaar.configured` can now also take
+actual function and channel values where only symbols had been
+expected before.
+
 ## Changes between Kehaar 0.10.5 and 0.11.0
 
 Rather than spinning up the maximum number of desired processing threads for
