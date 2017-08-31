@@ -1,5 +1,9 @@
 # Change Log
 
+## Changes between Kehaar 0.11.1 and HEAD
+
+Updated Langohr to 4.1.0
+
 ## Changes between Kehaar 0.11.0 and 0.11.1
 
 Initialization functions in `kehaar.configured` can now also take
