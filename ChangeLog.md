@@ -1,6 +1,6 @@
 # Change Log
 
-## Changes between Kehaar 0.11.1 and HEAD
+## Changes between Kehaar 0.11.1 and 0.11.2
 
 Updated Langohr to 4.1.0
 
