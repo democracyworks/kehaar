@@ -272,7 +272,7 @@ channels for the caller to wait on. **This is a breaking change.**
 
 `kehaar/wire-up-service` no longer declares the queue it operates on
 either. **This is a breaking change.** Queues must now already be
-delcared. Additionally, internally, it uses a server-named, exclusive,
+declared. Additionally, internally, it uses a server-named, exclusive,
 auto-deleted queue.
 
 ### kehaar/responder

@@ -49,6 +49,6 @@ edn and placed on the "updates" queue. Each message should have
                                a-rabbit-channel)
 ```
 
-All messages sent to the `outgoing-messages` channel will ebe ncoded
+All messages sent to the `outgoing-messages` channel will be encoded
 as edn and placed on the queue specified in the `:reply-to` key in the
 metadata. Each message should have `:message` and `:metadata`.
