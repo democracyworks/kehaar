@@ -141,7 +141,7 @@ have a large buffer to get messages out to RabbitMQ as soon as
 possible.
 
 `wire-up/incoming-service` takes an optional argument
-`ignore-no-reply-to`. If true, kehaar will not log when an incomming
+`ignore-no-reply-to`. If true, kehaar will not log when an incoming
 message is missing the `:reply-to` metadata key. This will help
 prevent noise in the logs if the request comes from
 `async->fire-and-forget-fn`.

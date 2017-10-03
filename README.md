@@ -34,9 +34,9 @@ is a collection of all the shutdownable resources created in the
 process, and it may be passed to `kehaar.configured/shutdown!` to
 clean them all up.
 
-##### Specifying funtions and channels
+##### Specifying functions and channels
 
-Anywhere a `kehaar.configured` initialzation function expects a
+Anywhere a `kehaar.configured` initialization function expects a
 function or channel, you may pass instead a fully qualified symbol
 naming the function or channel you wish to use. If you do, the
 appropriate namespace will be required and the function or channel
@@ -86,7 +86,7 @@ return value is unspecified and should not be used.
 Some notes:
 
 * For "RPC" semantics, set `:response` to `true` in the options map
-  and use `wire-up/async->fn` instead, whcih will return a core.async
+  and use `wire-up/async->fn` instead, which will return a core.async
   channel that will eventually contain the result.
 * If the service provides a stream of responses for each request, set
   `:response` to `:streaming` and use `wire-up/async->fn`.
@@ -230,7 +230,7 @@ times.
 While it is perfectly acceptable to connect to RabbitMQ using langohr
 directly, there is also `kehaar.rabbitmq/connect-with-retries`. This
 fn takes a RabbitMQ config map just like `langohr.core/connect` and,
-optionally, a max-retry count (which defaults to 5 if ommitted).
+optionally, a max-retry count (which defaults to 5 if omitted).
 
 It then attempts to connect to the RabbitMQ broker up to the max-retry
 count with backoff of `(* attempts 1000)` milliseconds.
