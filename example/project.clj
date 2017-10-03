@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.slf4j/slf4j-simple "1.7.25"]
-                 [democracyworks/kehaar "0.11.2"]]
+                 [democracyworks/kehaar "0.11.3-transit-SNAPSHOT"]]
   :main kehaar-example.core
   :aliases {"streaming-producer" ["run" "-m" "kehaar-example.streaming.producer"]
             "streaming-consumer" ["run" "-m" "kehaar-example.streaming.consumer"]

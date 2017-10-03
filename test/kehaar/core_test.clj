@@ -3,29 +3,21 @@
             [kehaar.core :refer :all]
             [clojure.core.async :as async]
             [kehaar.async :refer [bounded<!! bounded>!!]]
-            [kehaar.edn :as edn]))
-
-(defn edn-bytes
-  "Returns a byte array of the edn representation of x."
-  [x]
-  (->> x
-       edn/pr-str
-       (map int)
-       byte-array))
+            [kehaar.transit :as transit]))
 
 (let [message {:edn [1 2]
                :test true
                :moon-landing #inst "1969-07-20"}
       rabbit-ch :rabbit-channel
       metadata {:year 2015 :delivery-tag 8675309}
-      payload (edn-bytes message)
+      payload (transit/to-byte-array message)
       bad-payload (byte-array (map int "{"))
-      nil-payload (edn-bytes nil)]
+      nil-payload (transit/to-byte-array nil)]
 
   (deftest rabbit->async-handler-fn-test
     (let [c (async/chan 1)
           handler (channel-handler c "" 100)]
-      (testing "only passes through the edn-decoded payload"
+      (testing "only passes through the transit-decoded payload"
         (handler rabbit-ch metadata payload)
         (let [returned-message (bounded<!! c 100)]
           (is (= message (:message returned-message)))))
