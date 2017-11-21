@@ -9,7 +9,8 @@
             [langohr.consumers :as lc]
             [clojure.tools.logging :as log]
             [kehaar.async :refer [bounded<!! bounded>!!]]
-            [kehaar.test-config :refer [rmq-config]]))
+            [kehaar.test-config :refer [rmq-config]]
+            [kehaar.transit :as transit]))
 
 (deftest ^:rabbit-mq events-test
   (testing "we can publish events and receive them, going through rabbit"
@@ -237,15 +238,15 @@
           (is rabbit-queue)
           (testing "then sends the rest of the messages on the bespoke queue"
             (doseq [n (range 10 100)]
-              (is (= (str n) (-> conn
-                                 lch/open
-                                 (lb/get rabbit-queue)
-                                 (nth 1)
-                                 (String. "UTF-8"))))))
+              (is (= n (-> conn
+                           lch/open
+                           (lb/get rabbit-queue)
+                           (nth 1)
+                           transit/read)))))
           (testing "then sends stop"
-            (is (= ":kehaar.core/stop"
+            (is (= :kehaar.core/stop
                    (-> conn
                        lch/open
                        (lb/get rabbit-queue)
                        (nth 1)
-                       (String. "UTF-8"))))))))))
+                       transit/read)))))))))

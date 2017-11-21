@@ -3,6 +3,7 @@
             [kehaar.jobs :as jobs]
             [kehaar.core]
             [kehaar.response-queues :as rq]
+            [kehaar.transit :as transit]
             [clojure.core.async :as async]
             [clojure.tools.logging :as log]
             [langohr.core :as rmq]
@@ -321,7 +322,7 @@
                  {:routing-key "kehaar-job.*"})
         (lc/subscribe response-ch response-queue
                       (fn [ch metadata ^bytes payload]
-                        (let [m (kehaar.core/read-payload payload)
+                        (let [m (transit/read payload)
                               {:keys [::jobs/routing-key
                                       ::jobs/message]} m]
                           (when-let [handler (get-in @jobs/jobs [routing-key :handler])]
@@ -342,7 +343,7 @@
                  {:routing-key "kehaar-worker"})
         (lc/subscribe worker-ch worker-queue
                       (fn [ch metadata ^bytes payload]
-                        (let [m (kehaar.core/read-payload payload)
+                        (let [m (transit/read payload)
                               {:keys [::jobs/routing-key]} m]
                           (when (get @jobs/jobs routing-key)
                             (jobs/add-worker! routing-key))))
@@ -398,6 +399,24 @@
     {:rabbit-channel ch
      :async-channels {:in in-chan}}))
 
+(defn make-transit-init-fn [add-fn]
+  (fn [xs]
+    (let [xs (realize-symbol-or-self xs)]
+      (cond
+        (map? xs) (add-fn xs)
+        (sequential? xs) (doseq [x xs]
+                           (-> x
+                               realize-symbol-or-self
+                               add-fn))
+        :else (throw (IllegalArgumentException.
+                      "Argument must be a map or a sequence of maps"))))))
+
+(def init-transit-readers!
+  (make-transit-init-fn transit/add-readers!))
+
+(def init-transit-writers!
+  (make-transit-init-fn transit/add-writers!))
+
 (defn shutdown-part!
   "Closes rabbit channels and core.async channels created by any of
   the `init-*!` functions."
@@ -433,7 +452,8 @@
                 incoming-events
                 outgoing-events
                 incoming-jobs
-                outgoing-jobs]}
+                outgoing-jobs]
+         {:keys [readers writers]} :transit}
         configuration
         states (atom [])]
     (init-exchange! connection {:exchange jobs/kehaar-exchange})
@@ -461,5 +481,10 @@
       (swap! states conj (init-incoming-job! connection incoming-job)))
     (doseq [outgoing-job outgoing-jobs]
       (swap! states conj (init-outgoing-job! connection outgoing-job)))
+
+    (when readers
+      (init-transit-readers! readers))
+    (when writers
+      (init-transit-writers! writers))
 
     @states))
