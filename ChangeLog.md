@@ -1,5 +1,10 @@
 # Change Log
 
+## Changes between Kehaar 0.11.2 and 0.11.3
+
+`kehaar.rabbitmq/connect-with-retries` now retries to connect on any
+`Exception` subclass thrown rather than trying to catch specific ones. 
+
 ## Changes between Kehaar 0.11.1 and 0.11.2
 
 Updated Langohr to 4.1.0
