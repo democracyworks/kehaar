@@ -4,8 +4,8 @@
             [langohr.consumers :as lc]
             [langohr.queue :as lq]
             [clojure.tools.logging :as log]
-            [kehaar.async :refer [bounded>!!]]
-            [kehaar.edn :as edn])
+            [clojure.edn :as edn]
+            [kehaar.async :refer [bounded>!!]])
   (:import [java.util.concurrent Semaphore]))
 
 (defn read-payload
@@ -117,7 +117,7 @@
    (async=>rabbit channel rabbit-channel "" queue))
   ([channel rabbit-channel exchange queue]
    (go-handler [{:keys [message metadata]} channel]
-     (lb/publish rabbit-channel exchange queue (edn/pr-str message)
+     (lb/publish rabbit-channel exchange queue (pr-str message)
                  metadata))))
 
 (defn async=>rabbit-with-reply-to
@@ -139,12 +139,12 @@
   ([channel rabbit-channel exchange ignore-no-reply-to]
    (go-handler [{:keys [message metadata]} channel]
      (if-let [reply-to (:reply-to metadata)]
-       (lb/publish rabbit-channel exchange reply-to (edn/pr-str message)
+       (lb/publish rabbit-channel exchange reply-to (pr-str message)
                    (assoc metadata :mandatory true))
        (when-not ignore-no-reply-to
          (log/warn "Kehaar: No reply-to in metadata."
-                   (edn/pr-str message)
-                   (edn/pr-str metadata)))))))
+                   (pr-str message)
+                   (pr-str metadata)))))))
 
 (defn thread-handler
   [channel f threads]
@@ -237,7 +237,7 @@
                                    (reset! stream-active? false)))
                 put-fn (fn [v]
                          (when @stream-active?
-                           (lb/publish ch "" response-queue (edn/pr-str v)
+                           (lb/publish ch "" response-queue (pr-str v)
                                        (assoc metadata :mandatory true))))]
             ;; add return listener
             (.addReturnListener ch return-listener)
