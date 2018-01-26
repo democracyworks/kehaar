@@ -6,7 +6,7 @@ A Clojure library designed to pass messages between RabbitMQ and core.async.
 
 ## Usage
 
-Add `[democracyworks/kehaar "0.11.2"]` to your dependencies.
+Add `[democracyworks/kehaar "0.11.4"]` to your dependencies.
 
 There are a few namespaces available for connecting core.async
 channels to rabbitmq. `kehaar.core` is a low-level
@@ -242,7 +242,7 @@ connection just like `langohr.core/connect`.
 
 ## License
 
-Copyright © 2016-2017 Democracy Works, Inc.
+Copyright © 2016-2018 Democracy Works, Inc.
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.

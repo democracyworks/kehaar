@@ -1,5 +1,11 @@
 # Change Log
 
+## Changes between Kehaar 0.11.3 and 0.11.4
+
+The END handling changes introduced in 0.11.0 have been ripped out. In practice
+they caused more problems than they solved. Only Clojure core developers can
+fix EDN in Clojure. Here's hoping they do so.
+
 ## Changes between Kehaar 0.11.2 and 0.11.3
 
 `kehaar.rabbitmq/connect-with-retries` now retries to connect on any
