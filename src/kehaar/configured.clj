@@ -31,11 +31,15 @@
   ((realize-symbol-or-self inc) 5)               ;;=> 6"
   [x]
   (if (symbol? x)
-    (do
+    (try
       (require-ns x)
       (-> x
           find-var
-          var-get))
+          var-get)
+      (catch Exception e
+        (throw
+         (ex-info (str "ERROR while trying realize symbol" (pr-str x))
+                  {:symbol x, :cause e}))))
     x))
 
 (defn init-exchange!
