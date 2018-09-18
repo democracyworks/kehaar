@@ -1,5 +1,11 @@
 # Change Log
 
+## Changes between Kehaar 0.11.4 and HEAD
+
+Kehaar will output additional helpful information if an exception is thrown
+while trying to realize a symbol from a kehaar.configured handler fn name.
+Specifically it will tell you the name of the symbol it was trying to realize.
+
 ## Changes between Kehaar 0.11.3 and 0.11.4
 
 The END handling changes introduced in 0.11.0 have been ripped out. In practice
