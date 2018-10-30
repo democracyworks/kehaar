@@ -1,4 +1,4 @@
-(ns kehaar.rabbitmq
+(ns kehaar.rabbitmq-test
   (:require [clojure.test :refer :all]
             [kehaar.rabbitmq :refer :all]))
 
