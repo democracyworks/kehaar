@@ -9,7 +9,8 @@
   default to take over rather than using an invalid config."
   [config]
   (let [params-with-defaults #{:username :password :vhost :host :port
-                               :requested-heartbeat}]
+                               :requested-heartbeat :requested-channel-max
+                               :connection-timeout :automatically-recover}]
     (reduce-kv (fn [c k v]
                  (if (and (params-with-defaults k)
                           (if (string? v)
