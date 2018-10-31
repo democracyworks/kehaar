@@ -1,6 +1,6 @@
 # Change Log
 
-## Changes between Kehaar 0.11.4 and HEAD
+## Changes between Kehaar 0.11.4 and 1.0.0
 
 - The `kehaar.rabbitmq` namespace has a new fn named
   `dissoc-blank-config-params-with-defaults`. This is an optional helper fn
