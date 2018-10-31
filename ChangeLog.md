@@ -14,6 +14,9 @@
     - :host
     - :port
     - :requested-heartbeat
+    - :requested-channel-max
+    - :connection-timeout
+    - :automatically-recover
   ...where that value is either nil or a string for which
   `clojure.string/blank?` returns true.
 
