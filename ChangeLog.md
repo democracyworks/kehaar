@@ -2,9 +2,24 @@
 
 ## Changes between Kehaar 0.11.4 and HEAD
 
-Kehaar will output additional helpful information if an exception is thrown
-while trying to realize a symbol from a kehaar.configured handler fn name.
-Specifically it will tell you the name of the symbol it was trying to realize.
+- The `kehaar.rabbitmq` namespace has a new fn named
+  `dissoc-blank-config-params-with-defaults`. This is an optional helper fn
+  whose purpose is to assist with not clobbering default values with emtpy
+  strings and nils in your RabbitMQ connection config map (i.e. the arg you'll
+  pass to `connect-with-retries`). It dissoc's any value for the following
+  keys:
+    - :username
+    - :hostname
+    - :vhost
+    - :host
+    - :port
+    - :requested-heartbeat
+  ...where that value is either nil or a string for which
+  `clojure.string/blank?` returns true.
+
+- Kehaar will output additional helpful information if an exception is thrown
+  while trying to realize a symbol from a kehaar.configured handler fn name.
+  Specifically it will tell you the name of the symbol it was trying to realize.
 
 ## Changes between Kehaar 0.11.3 and 0.11.4
 
