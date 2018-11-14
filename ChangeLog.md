@@ -2,6 +2,12 @@
 
 ## Changes between Kehaar 0.11.4 and 1.0.0
 
+- **Potentially breaking change:** Kehaar no longer pulls in core.async as a
+  dependency. Since using core.async directly in your application code has
+  always been a requirement when using kehaar, we have switched it to
+  `:scope "provided"`. You must add a recent version of
+  `org.clojure/core.async` to your app's dependencies to use kehaar 1.0.0+.
+
 - The `kehaar.rabbitmq` namespace has a new fn named
   `dissoc-blank-config-params-with-defaults`. This is an optional helper fn
   whose purpose is to assist with not clobbering default values with emtpy
