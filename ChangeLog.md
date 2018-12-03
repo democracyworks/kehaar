@@ -23,6 +23,7 @@
     - :requested-channel-max
     - :connection-timeout
     - :automatically-recover
+
   ...where that value is either nil or a string for which
   `clojure.string/blank?` returns true.
 
@@ -32,14 +33,14 @@
 
 ## Changes between Kehaar 0.11.3 and 0.11.4
 
-The END handling changes introduced in 0.11.0 have been ripped out. In practice
+The EDN handling changes introduced in 0.11.0 have been ripped out. In practice
 they caused more problems than they solved. Only Clojure core developers can
 fix EDN in Clojure. Here's hoping they do so.
 
 ## Changes between Kehaar 0.11.2 and 0.11.3
 
 `kehaar.rabbitmq/connect-with-retries` now retries to connect on any
-`Exception` subclass thrown rather than trying to catch specific ones. 
+`Exception` subclass thrown rather than trying to catch specific ones.
 
 ## Changes between Kehaar 0.11.1 and 0.11.2
 
