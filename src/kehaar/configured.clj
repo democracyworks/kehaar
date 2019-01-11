@@ -39,20 +39,21 @@
 
   ((realize-symbol-or-self 'clojure.core/inc) 4) ;;=> 5
   ((realize-symbol-or-self inc) 5)               ;;=> 6"
-  [x resolve?]
-  (if (symbol? x)
-    (try
-      (require-ns x)
-      (if-let [v (find-var x)]
-        (if resolve?
-          (var-get v)
-          v)
-        (throw (ex-info (str "#'" (pr-str x) " does not exist") {})))
-      (catch Exception e
-        (throw
-         (ex-info (str "ERROR while trying realize symbol " (pr-str x))
-                  {:symbol x, :cause e}))))
-    x))
+  ([x] (realize-symbol-or-self x true))
+  ([x resolve?]
+   (if (symbol? x)
+     (try
+       (require-ns x)
+       (if-let [v (find-var x)]
+         (if resolve?
+           (var-get v)
+           v)
+         (throw (ex-info (str "#'" (pr-str x) " does not exist") {})))
+       (catch Exception e
+         (throw
+          (ex-info (str "ERROR while trying realize symbol" (pr-str x))
+                   {:symbol x, :cause e}))))
+     x)))
 
 (defn realize-fn
   ([x] (realize-fn x debug-handlers?))
