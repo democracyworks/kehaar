@@ -60,7 +60,7 @@
   ([x debug?]
    (realize-symbol-or-self x (not debug?))))
 
-(defn realize-chan [x] (realize-symbol-or-self x true))
+(def realize-chan realize-symbol-or-self)
 
 (defn init-exchange!
   "Initializes an exchange.
