@@ -8,7 +8,7 @@
   (testing "with a symbol"
     (is (= inc (realize-symbol-or-self 'clojure.core/inc)))
     (testing "can resolve something in a ns not yet required"
-      (is (= :bar (realize-symbol-or-self 'kehaar.not-yet-required/foo))))
+      (is (= :bar ((realize-symbol-or-self 'kehaar.not-yet-required/foo)))))
     (testing "throws when symbol can't be resolved"
       (is (thrown? Exception (realize-symbol-or-self 'not.a.real.ns/bad)))
       (is (thrown? Exception (realize-symbol-or-self 'clojure.core/NOPE))))))
@@ -19,7 +19,7 @@
   (testing "with a symbol"
     (is (= inc (realize-fn 'clojure.core/inc false)))
     (testing "can resolve something in a ns not yet required"
-      (is (= :bar (realize-fn 'kehaar.not-yet-required/foo false))))
+      (is (= :bar ((realize-fn 'kehaar.not-yet-required/foo false)))))
     (testing "throws when symbol can't be resolved"
       (is (thrown? Exception (realize-fn 'not.a.real.ns/bad false)))
       (is (thrown? Exception (realize-fn 'clojure.core/NOPE false))))))
@@ -31,7 +31,7 @@
     ;; This returns a var -- a subtle difference from the non-debug version
     (is (= #'inc (realize-fn 'clojure.core/inc :debug)))
     (testing "can resolve something in a ns not yet required"
-      (is (= :bar (realize-fn 'kehaar.not-yet-required/foo :debug))))
+      (is (= :bar ((realize-fn 'kehaar.not-yet-required/foo :debug)))))
     (testing "throws when symbol can't be resolved"
       (is (thrown? Exception (realize-fn 'not.a.real.ns/bad :debug)))
       (is (thrown? Exception (realize-fn 'clojure.core/NOPE :debug))))))
