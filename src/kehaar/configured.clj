@@ -51,7 +51,11 @@
                   {:symbol x, :cause e}))))
     x))
 
-(defn realize-fn [x] (realize-symbol-or-self x (not debug-handlers?)))
+(defn realize-fn
+  ([x] (realize-fn x debug-handlers?))
+  ([x debug?]
+   (realize-symbol-or-self x (not debug?))))
+
 (defn realize-chan [x] (realize-symbol-or-self x true))
 
 (defn init-exchange!
