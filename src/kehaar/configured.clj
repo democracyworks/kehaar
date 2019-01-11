@@ -43,11 +43,14 @@
   (if (symbol? x)
     (try
       (require-ns x)
-      (cond-> (find-var x)
-        resolve? var-get)
+      (if-let [v (find-var x)]
+        (if resolve?
+          (var-get v)
+          v)
+        (throw (ex-info (str "#'" (pr-str x) " does not exist") {})))
       (catch Exception e
         (throw
-         (ex-info (str "ERROR while trying realize symbol" (pr-str x))
+         (ex-info (str "ERROR while trying realize symbol " (pr-str x))
                   {:symbol x, :cause e}))))
     x))
 
