@@ -4,6 +4,7 @@
             [kehaar.core]
             [kehaar.response-queues :as rq]
             [clojure.core.async :as async]
+            [clojure.string :as string]
             [clojure.tools.logging :as log]
             [langohr.core :as rmq]
             [langohr.basic :as lb]
@@ -22,6 +23,13 @@
   (let [ns' (symbol (namespace sym))]
     (when-not (find-ns ns')
       (require ns'))))
+
+(def debug-handlers?
+  (some-> (System/getenv "KEHAAR_DEBUG")
+          string/lower-case
+          string/trim
+          #{"1" "true"}
+          boolean))
 
 (defn realize-symbol-or-self
   "Given a symbol, gets what it names. Otherwise, returns the argument.
@@ -43,7 +51,7 @@
                   {:symbol x, :cause e}))))
     x))
 
-(defn realize-fn [x] (realize-symbol-or-self x false))
+(defn realize-fn [x] (realize-symbol-or-self x (not debug-handlers?)))
 (defn realize-chan [x] (realize-symbol-or-self x true))
 
 (defn init-exchange!
