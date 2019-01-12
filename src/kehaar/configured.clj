@@ -37,8 +37,9 @@
   if `resolve?` is true, returns the value in the var;
   otherwise, returns the var itself.
 
-  ((realize-symbol-or-self 'clojure.core/inc) 4) ;;=> 5
-  ((realize-symbol-or-self inc) 5)               ;;=> 6"
+  ((realize-symbol-or-self 'clojure.core/inc) 4)   ;;=> 5
+  ((realize-symbol-or-self inc) 5)                 ;;=> 6
+  (realize-symbol-or-self 'clojure.core/inc false) ;;=> #'clojure.core/inc"
   ([x] (realize-symbol-or-self x true))
   ([x resolve?]
    (if (symbol? x)
