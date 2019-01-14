@@ -1,3 +1,3 @@
 (ns kehaar.not-yet-required)
 
-(defn foo [] :bar)
+(def foo :bar)
