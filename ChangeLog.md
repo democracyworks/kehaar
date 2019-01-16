@@ -1,5 +1,12 @@
 # Change Log
 
+## Changes between Kehaar 1.0.0 and 1.0.1
+
+`kehaar.configured` can optionally use a var instead of a function for
+incoming-services, incoming-events, and incoming-jobs, making repl-based
+development simpler. Set the `KEHAAR_DEBUG` environment variable to `true` to
+use this behavior.
+
 ## Changes between Kehaar 0.11.4 and 1.0.0
 
 - **Potentially breaking change:** Kehaar no longer pulls in core.async as a
