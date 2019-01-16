@@ -4,6 +4,7 @@
             [kehaar.core]
             [kehaar.response-queues :as rq]
             [clojure.core.async :as async]
+            [clojure.string :as string]
             [clojure.tools.logging :as log]
             [langohr.core :as rmq]
             [langohr.basic :as lb]
@@ -23,24 +24,44 @@
     (when-not (find-ns ns')
       (require ns'))))
 
-(defn realize-symbol-or-self
-  "Given a symbol, gets what it names. Otherwise, returns the
-  argument.
+(def debug-handlers?
+  (some-> (System/getenv "KEHAAR_DEBUG")
+          string/lower-case
+          string/trim
+          #{"1" "true"}
+          boolean))
 
-  ((realize-symbol-or-self 'clojure.core/inc) 4) ;;=> 5
-  ((realize-symbol-or-self inc) 5)               ;;=> 6"
-  [x]
-  (if (symbol? x)
-    (try
-      (require-ns x)
-      (-> x
-          find-var
-          var-get)
-      (catch Exception e
-        (throw
-         (ex-info (str "ERROR while trying realize symbol" (pr-str x))
-                  {:symbol x, :cause e}))))
-    x))
+(defn realize-symbol-or-self
+  "Given a symbol, gets what it names. Otherwise, returns the argument.
+
+  if `resolve?` is true, returns the value in the var;
+  otherwise, returns the var itself.
+
+  ((realize-symbol-or-self 'clojure.core/inc) 4)   ;;=> 5
+  ((realize-symbol-or-self inc) 5)                 ;;=> 6
+  (realize-symbol-or-self 'clojure.core/inc false) ;;=> #'clojure.core/inc"
+  ([x] (realize-symbol-or-self x true))
+  ([x resolve?]
+   (if (symbol? x)
+     (try
+       (require-ns x)
+       (if-let [v (find-var x)]
+         (if resolve?
+           (var-get v)
+           v)
+         (throw (ex-info (str "#'" (pr-str x) " does not exist") {})))
+       (catch Exception e
+         (throw
+          (ex-info (str "ERROR while trying realize symbol" (pr-str x))
+                   {:symbol x, :cause e}))))
+     x)))
+
+(defn realize-fn
+  ([x] (realize-fn x debug-handlers?))
+  ([x debug?]
+   (realize-symbol-or-self x (not debug?))))
+
+(def realize-chan realize-symbol-or-self)
 
 (defn init-exchange!
   "Initializes an exchange.
@@ -125,7 +146,7 @@
 
   (let [in-chan (async/chan)
         out-chan (async/chan)
-        f (realize-symbol-or-self f)
+        f (realize-fn f)
         ignore-no-reply-to? (not response)
         streaming? (= response :streaming)
         rabbit-ch (wire-up/incoming-service connection
@@ -185,7 +206,7 @@
          timeout default-timeout
          response nil}}]
 
-  (let [channel (realize-symbol-or-self channel)
+  (let [channel (realize-chan channel)
         rabbit-ch (cond
                     (= response :streaming) (wire-up/streaming-external-service
                                              connection
@@ -243,7 +264,7 @@
          threads wire-up/default-thread-count
          timeout default-timeout}}]
 
-  (let [f (realize-symbol-or-self f)
+  (let [f (realize-fn f)
         channel (async/chan 100)
         rabbit-ch (wire-up/incoming-events-channel connection
                                                    queue
@@ -276,7 +297,7 @@
    {:keys [exchange routing-key channel]
     :or {exchange default-exchange}}]
 
-  (let [out-channel (realize-symbol-or-self channel)
+  (let [out-channel (realize-chan channel)
         rabbit-ch (wire-up/outgoing-events-channel
                    connection
                    exchange
@@ -308,7 +329,7 @@
   [connection {:keys [jobs-chan queue queue-options exchange]
                :or {queue-options default-queue-options
                     exchange default-exchange}}]
-  (let [jobs-chan (realize-symbol-or-self jobs-chan)
+  (let [jobs-chan (realize-chan jobs-chan)
         outgoing-ch (langohr.channel/open connection)]
     (lq/declare outgoing-ch queue queue-options)
     (kehaar.core/async=>rabbit jobs-chan outgoing-ch exchange queue)
@@ -388,7 +409,7 @@
                                  work-ch
                                  jobs/kehaar-exchange
                                  "kehaar-worker")))
-  (let [f (realize-symbol-or-self f)
+  (let [f (realize-fn f)
         in-chan (async/chan)
         ch (lchan/open connection)]
     (lq/declare ch queue queue-options)
