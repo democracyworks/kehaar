@@ -237,7 +237,8 @@
        (rq/set-response-queue! queue-name response-queue)
 
        ;; start listening for responses
-       (kehaar.core/rabbit=>async ch response-queue <response-channel
+       (kehaar.core/rabbit=>async shared-response-ch
+                                  response-queue <response-channel
                                   {:exclusive true} 1000)
        (kehaar.core/go-handler
         [{:keys [message metadata]} <response-channel]
