@@ -1,5 +1,10 @@
 # Change Log
 
+## Changes between Kehaar 1.0.1 and 1.0.2
+
+Fixed a bug where if a consumer was slow to process streaming results, the
+result stream could be truncated.
+
 ## Changes between Kehaar 1.0.0 and 1.0.1
 
 `kehaar.configured` can optionally use a var instead of a function for
