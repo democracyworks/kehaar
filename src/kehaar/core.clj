@@ -29,13 +29,10 @@
            ;; don't requeue nil, it's invalid
            [:nack delivery-tag false]
 
-           (= ::stop message)
+           (and (= ::stop message) close-channel?)
            ;; ack it and close the channel if close-channel?
            (do
-             (if close-channel?
-               (async/close! channel)
-               (bounded>!! channel {:message message
-                                    :metadata metadata} timeout))
+             (async/close! channel)
              [:ack delivery-tag])
 
            :else

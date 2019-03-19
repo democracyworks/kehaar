@@ -237,7 +237,8 @@
        (rq/set-response-queue! queue-name response-queue)
 
        ;; start listening for responses
-       (kehaar.core/rabbit=>async ch response-queue <response-channel
+       (kehaar.core/rabbit=>async shared-response-ch
+                                  response-queue <response-channel
                                   {:exclusive true} 1000)
        (kehaar.core/go-handler
         [{:keys [message metadata]} <response-channel]
@@ -266,15 +267,13 @@
                   (let [msg (async/<! message-channel)]
                     (when (get-in @pending-calls [correlation-id :timeout])
                       (swap! pending-calls update correlation-id dissoc :timeout))
-                    (if (nil? msg)
-                      (async/close! return-channel)
-                      (if (async/>! return-channel msg)
-                        (recur)
-                        (do
-                          (when-not (langohr.core/closed? response-ch)
-                            (langohr.core/close response-ch))
-                          (swap! pending-calls dissoc correlation-id)
-                          (async/close! message-channel)))))))
+                    (if (and (some? msg) (async/>! return-channel msg))
+                      (recur)
+                      (do
+                        (async/close! return-channel)
+                        (langohr.core/close response-ch)
+                        (swap! pending-calls dissoc correlation-id)
+                        (async/close! message-channel))))))
               (do
                 (log/info (format "Deleting queue %s" (:kehaar.core/response-queue message)))
                 (langohr.queue/delete ch (:kehaar.core/response-queue message))))
