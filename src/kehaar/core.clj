@@ -1,6 +1,7 @@
 (ns kehaar.core
   (:require [clojure.core.async :as async]
             [langohr.basic :as lb]
+            [langohr.channel]
             [langohr.consumers :as lc]
             [langohr.queue :as lq]
             [clojure.tools.logging :as log]
@@ -224,7 +225,9 @@
           (= sent-count threshold)      ; set up bespoke queue and start using it
           (let [ch (langohr.channel/open connection)
                 response-queue (langohr.queue/declare-server-named
-                                ch
+                                ;; we don't want to auto-recover this queue
+                                ;; since it is really "owned" by the consumer
+                                (langohr.channel/as-non-recovering-channel ch)
                                 {:exclusive false
                                  :auto-delete true
                                  :durable false})
