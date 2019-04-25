@@ -59,3 +59,58 @@
       (finally
         (configured/shutdown! state)
         (rmq/close conn)))))
+
+(deftest ^:rabbit-mq streaming-recovery-test
+  (let [kill-connection (fn [c]
+                          ;; based on https://github.com/rabbitmq/rabbitmq-java-client/blob/329156821f7b5e023e1d422558503bfb03c3ba34/src/test/java/com/rabbitmq/client/test/functional/Heartbeat.java
+                          (.. c getDelegate getDelegate (setHeartbeat 0))
+                          (println "# sleeping for 3 seconds to trigger heartbeat failure")
+                          (Thread/sleep 3100))
+        ;; streaming responder
+        responder-conn (rmq/connect (assoc rmq-config :requested-heartbeat 1))
+        responder-state (configured/init! responder-conn
+                                          {:incoming-services
+                                           [{:queue "stream-test-2"
+                                             :f #(range (:n %))
+                                             :response :streaming
+                                             :threads 1
+                                             :threshold 10}]})
+        ;; streaming caller/consumer
+        consumer-conn (rmq/connect rmq-config)
+        stream-ch (async/chan 1)
+        call! (wire-up/async->fn stream-ch)
+        consumer-state (configured/init! consumer-conn
+                                         {:external-services
+                                          [{:queue "stream-test-2"
+                                            :channel stream-ch
+                                            :response :streaming
+                                            :timeout 30000}]})
+        recovered-queues' (atom [])
+        recovered-queues (promise)]
+    ;; collect recovered queues
+    (rmq/on-queue-recovery
+     responder-conn
+     (fn [old-name new-name]
+       (swap! recovered-queues' conj new-name)))
+    (rmq/on-recovery
+     responder-conn
+     (fn [_] (deliver recovered-queues @recovered-queues')))
+    (try
+      ;; stream a few responses long enough that they will create bespoke
+      ;; response queues
+      (-> (call! {:n 100}) k.core/async->lazy-seq doall)
+      (-> (call! {:n 100}) k.core/async->lazy-seq doall)
+      (-> (call! {:n 100}) k.core/async->lazy-seq doall)
+      (-> (call! {:n 100}) k.core/async->lazy-seq doall)
+      ;; kill the connection to trigger recovery
+      (kill-connection responder-conn)
+      ;; check to see that extra response queues were not created
+      (println "# waiting up to 10 seconds for recovery to finish")
+      (is (= ["stream-test-2"] (deref recovered-queues 10000 ::timeout))
+          "Only the incoming-service queue was recovered")
+      (finally
+        ;; cleanup
+        (configured/shutdown! responder-state)
+        (configured/shutdown! consumer-state)
+        (rmq/close responder-conn)
+        (rmq/close consumer-conn)))))
