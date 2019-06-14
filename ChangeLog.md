@@ -1,5 +1,12 @@
 # Change Log
 
+## Changes between Kehaar 1.0.2 and 1.0.3
+
+Bespoke streaming response queues are not redeclared during queue recovery.
+These queues are considered to be "owned" by the requester, but they have to be
+created by the responder. By default, connections that declare queues will
+recover them unless the same connection deletes them.
+
 ## Changes between Kehaar 1.0.1 and 1.0.2
 
 Fixed a bug where if a consumer was slow to process streaming results, the
