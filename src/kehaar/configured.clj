@@ -34,8 +34,9 @@
 (defn realize-symbol-or-self
   "Given a symbol, gets what it names. Otherwise, returns the argument.
 
-  if `resolve?` is true, returns the value in the var;
-  otherwise, returns the var itself.
+  If `resolve?` is true, returns the value in the var; otherwise, returns the
+  var itself. In practice, returning the var allows handler functions to be
+  dynamically reloaded, which is useful during development.
 
   ((realize-symbol-or-self 'clojure.core/inc) 4)   ;;=> 5
   ((realize-symbol-or-self inc) 5)                 ;;=> 6
