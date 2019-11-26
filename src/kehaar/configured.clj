@@ -489,3 +489,107 @@
       (swap! states conj (init-outgoing-job! connection outgoing-job)))
 
     @states))
+
+;; -- Alternate API -----------------------------------------------------------
+
+;; This API usese the above functions, but considers kehaar state to be divided
+;; into two categories, which are handled differently:
+;;   Consumers -- single state, as a map of routes (c.f. pedestal route table)
+;;   Publishers -- multiple states, one per publisher
+
+(defn init-consumers!
+  "Like init! but only initializes exchanges and incoming-* keys."
+  [connection configuration]
+  (init! connection
+         (select-keys configuration [:exchanges
+                                     :incoming-services
+                                     :incoming-events
+                                     :incoming-jobs])))
+
+(defrecord Publisher [state f channel]
+  clojure.lang.IFn
+  (invoke [_ message]
+    (f message)))
+
+(defrecord JobPublisher [state f channel]
+  clojure.lang.IFn
+  (invoke [_ message callback]
+    (f message callback)))
+
+(defn- init-publisher* [publisher-type connection configuration]
+  (case publisher-type
+    :service (init-external-service! connection configuration)
+    :event (init-outgoing-event! connection configuration)
+    :job (init-outgoing-job! connection configuration)))
+
+(defn- wire-up-publisher [publisher-type configuration]
+  (case publisher-type
+    :service (if (:response configuration)
+               (wire-up/async->fn (:channel configuration))
+               (wire-up/async->fire-and-forget-fn (:channel configuration)))
+    :event (fn [message] (async/>!! (:channel configuration) message))
+    :job (jobs/async->job (:jobs-chan configuration))))
+
+(defn publisher-config->type
+  "Determines the publisher type based on the following rules:
+
+  * outgoing-jobs must have {:response :job}
+  * external-services must have a :response (true, false, or :streaming)
+  * outgoing-events must have both :exchange and :routing-key"
+  [configuration]
+  (cond
+    (contains? #{true false :streaming} (:response configuration)) :service
+    (= :job (:response configuration)) :job
+    (and (:exchange configuration) (:routing-key configuration)) :event
+    :else (throw (ex-info "Unable to determine publisher-type from configuration"
+                          configuration))))
+
+(defn find-publisher-config
+  [configuration queue-or-routing-key]
+  (->> (concat (:publishers configuration)
+               ;; for compatibility, also check external-services,
+               ;; outgoing-events, and outgoing-jobs
+               (:external-services configuration)
+               (:outgoing-events configuration)
+               (map #(assoc % :response :job) (:outgoing-jobs configuration)))
+       (filter #(= queue-or-routing-key (some % [:queue :routing-key])))
+       first))
+
+(defn init-publisher!
+  "Initializes and wires-up up a publisher using a configuration map.
+
+  Returns a `Publisher` or `JobPublisher` that encapsulates kehaar state, an
+  async channel, and a wire-up function. The returned record can be called as a
+  function:
+
+  ;; Create a publisher
+  (def cfg {:queue \"test-queue\" :response true :timeout 10000})
+  (def my-publisher (wire-up-publisher! conn cfg))
+
+  ;; Publish a message, and get a response
+  (def response (async/<!! (my-publisher {:hello :world})))
+
+  ;; Clean up
+  (stop-publisher! my-publisher)"
+  ([connection full-config queue-or-routing-key]
+   (if-let [config (find-publisher-config full-config queue-or-routing-key)]
+     (init-publisher! connection config)
+     (throw (ex-info (str "Unable to find queue or routing key: '"
+                          queue-or-routing-key
+                          "'in config") {}))))
+  ([connection configuration]
+   (let [publisher-type (publisher-config->type configuration)
+         job? (= :job publisher-type)
+         ch (async/chan)
+         configuration (assoc configuration (if job? :jobs-chan :channel) ch)
+         state (init-publisher* publisher-type connection configuration)
+         f (wire-up-publisher publisher-type configuration)]
+     (if job?
+       (->JobPublisher state f ch)
+       (->Publisher state f ch)))))
+
+(defn shutdown-publisher!
+  "Shuts down kehaar state and the async channel created by wire-up-publisher!"
+  [{:keys [state channel]}]
+  (shutdown-part! state)
+  (async/close! channel))
