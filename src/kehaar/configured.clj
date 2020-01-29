@@ -137,13 +137,14 @@
   on a bespoke queue for the caller. (optional, default 10)"
   [connection
    {:keys [f threshold exchange queue queue-options threads
-           prefetch-limit response]
+           prefetch-limit response chunk-size]
     :or {exchange default-exchange
          response nil
          prefetch-limit default-prefetch-limit
          queue-options default-queue-options
          threads wire-up/default-thread-count
-         threshold default-threshold}}]
+         threshold default-threshold
+         chunk-size 1}}]
 
   (let [in-chan (async/chan)
         out-chan (async/chan)
@@ -164,7 +165,8 @@
                                           out-chan
                                           f
                                           threshold
-                                          threads)
+                                          threads
+                                          chunk-size)
       (wire-up/start-responder! in-chan
                                 out-chan
                                 f

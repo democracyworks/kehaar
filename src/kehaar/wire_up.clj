@@ -81,9 +81,12 @@
    (start-streaming-responder! connection in-channel out-channel
                                f threshold default-thread-count))
   ([connection in-channel out-channel f threshold threads]
+   (start-streaming-responder! connection in-channel out-channel
+                               f threshold threads 1))
+  ([connection in-channel out-channel f threshold threads chunk-size]
    (kehaar.core/thread-handler
     in-channel
-    (kehaar.core/streaming-responder-fn connection out-channel f threshold)
+    (kehaar.core/streaming-responder-fn connection out-channel f threshold chunk-size)
     threads)))
 
 (defn start-jobs-handler!
@@ -209,6 +212,28 @@
      (kehaar.core/async=>rabbit channel ch exchange queue-name)
      ch)))
 
+(defmacro streaming-response-put!
+  "Puts (using >!) a single message or a sequence of :kehaar.core/chunk
+  messages onto `chan`.
+
+  This macro can only be used in a `go` block because it uses >! (and this has
+  to be a macro instead of a function b/c `go` doesn't analyze across function
+  boundaries)"
+  [chan msg]
+  `(let [chan# ~chan
+         msg# ~msg]
+     (if-let [messages# (and (map? msg#)
+                             (:kehaar.core/chunk msg#))]
+       (loop [[m# & rest-m#] messages#]
+         (if m#
+           (if (async/>! chan# m#)
+             (recur rest-m#)
+             ;; channel was closed
+             false)
+           ;; seq was exhausted
+           true))
+       (async/>! chan# msg#))))
+
 (defn streaming-external-service
   "Wires up a core.async channel to a RabbitMQ queue that provides
   responses. Use `async->fn` to create a function that puts to
@@ -267,7 +292,7 @@
                   (let [msg (async/<! message-channel)]
                     (when (get-in @pending-calls [correlation-id :timeout])
                       (swap! pending-calls update correlation-id dissoc :timeout))
-                    (if (and (some? msg) (async/>! return-channel msg))
+                    (if (and (some? msg) (streaming-response-put! return-channel msg))
                       (recur)
                       (do
                         (async/close! return-channel)
@@ -282,7 +307,7 @@
             (when-let [return-channel (get-in @pending-calls [correlation-id :return-channel])]
               (when (get-in @pending-calls [correlation-id :timeout])
                 (swap! pending-calls update correlation-id dissoc :timeout))
-              (async/>! return-channel message)))))
+              (streaming-response-put! return-channel message)))))
 
        ;; bookkeeping for sending the requests
        (kehaar.core/async=>rabbit >request-channel ch exchange queue-name)

@@ -201,6 +201,13 @@
     (sequential? val) val
     :else (throw (ex-info "Argument not coercable to seq" {:val val}))))
 
+(defn to-chunked-seq [v chunk-size]
+  (if (= 1 chunk-size)
+    (to-seq v)
+    (->> (to-seq v)
+         (partition-all chunk-size)
+         (map (fn [c] {::chunk (vec c)})))))
+
 (defn streaming-responder-fn
   "Create a function that takes map of message and metadata, calls `f`
   on message, and redirects the return to `out-channel`. If the size
@@ -208,9 +215,9 @@
   placed on a bespoke queue and the queue's name is placed on the
   `out-channel` instead of the results. Sends a `::stop` message when
   the response sequence is exhausted."
-  [connection out-channel f threshold]
+  [connection out-channel f threshold chunk-size]
   (fn [{:keys [message metadata]}]
-    (let [return (to-seq (f message))
+    (let [return (to-chunked-seq (f message) chunk-size)
           stream-active? (atom true)]
       (loop [sent-count 0
              responses return
