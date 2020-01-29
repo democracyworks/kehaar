@@ -1,5 +1,13 @@
 # Change Log
 
+## Changes between Kehaar 1.0.3 and 1.1.0
+
+Allow streaming incoming services to opt-in to chunking, which can
+significantly increase performance. Services that need to process chunked
+streaming responses _must_ use at least kehaar 1.1.0 in correctly process these
+responses. In other words, update the kehaar version of the requesting service
+before switching to chunked responses.
+
 ## Changes between Kehaar 1.0.2 and 1.0.3
 
 Bespoke streaming response queues are not redeclared during queue recovery.
