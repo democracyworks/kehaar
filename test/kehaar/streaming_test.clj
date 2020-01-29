@@ -114,3 +114,35 @@
         (configured/shutdown! consumer-state)
         (rmq/close responder-conn)
         (rmq/close consumer-conn)))))
+
+(deftest ^:rabbit-mq streaming-chunk-test
+  (let [conn (rmq/connect rmq-config)
+        stream-ch (async/chan 1)
+        call! (wire-up/async->fn stream-ch)
+        state (configured/init! conn
+                                {:incoming-services
+                                 [{:queue "stream-test-3"
+                                   :f #(range (:n %))
+                                   :response :streaming
+                                   :threads 1
+                                   :chunk-size 10
+                                   :threshold 20}]
+                                 :external-services
+                                 [{:queue "stream-test-3"
+                                   :channel stream-ch
+                                   :response :streaming
+                                   :timeout 30000}]})]
+    (try
+      (testing "with a single chunked message"
+        (is (= (range 1) (k.core/async->lazy-seq (call! {:n 1})))))
+      (testing "with exactly `chunk-size` messages"
+        (is (= (range 10) (k.core/async->lazy-seq (call! {:n 10})))))
+      (testing "with multiple chunked messages, but under the bespoke queue threshold"
+        (is (= (range 15) (k.core/async->lazy-seq (call! {:n 15})))))
+      (testing "with exactly the bespoke queue threshold"
+        (is (= (range 200) (k.core/async->lazy-seq (call! {:n 200})))))
+      (testing "with a lot of chunked messages"
+        (is (= (range 1000) (k.core/async->lazy-seq (call! {:n 1000})))))
+      (finally
+        (configured/shutdown! state)
+        (rmq/close conn)))))
