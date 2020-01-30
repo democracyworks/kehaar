@@ -1,4 +1,8 @@
 language: clojure
 script: lein test :all
+addons:
+  apt:
+    packages:
+      - rabbitmq-server
 services:
   - rabbitmq
